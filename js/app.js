@@ -105,7 +105,7 @@
     var input = el('entryInput');
     var text = input.value;
     if (!Parser.normalize(text)) {
-      UI.toast('אין מה לשמור — נא לכתוב או להכתיב תיאור.');
+      UI.toast('אין מה לנתח — נא לכתוב או להכתיב תיאור.');
       input.focus();
       return;
     }
@@ -116,19 +116,10 @@
       return;
     }
 
-    var ready = [];
-    var pending = [];
+    /* שום דבר לא נשמר ישירות: מה שזוהה עולה לבדיקה, ורק משם נשמר. כך אפשר
+       לראות איך התפצל המשפט ולתקן לפני שהוא נכנס ליומן. */
     parsed.forEach(function (rec) {
       rec.source = source;
-      if (rec.missing.length) pending.push(rec);
-      else ready.push(rec);
-    });
-
-    if (ready.length) {
-      Store.addMany(ready.map(stripDraftFields));
-    }
-
-    pending.forEach(function (rec) {
       draftSeq++;
       rec.key = 'd' + draftSeq;
       drafts.push(rec);
@@ -138,14 +129,11 @@
     voiceBase = '';
     renderDrafts();
 
-    if (ready.length && !pending.length) {
-      UI.toast(ready.length === 1 ? 'נשמר: ' + ready[0].name : 'נשמרו ' + ready.length + ' רשומות.');
-    } else if (ready.length && pending.length) {
-      UI.toast('נשמרו ' + ready.length + ' רשומות. חסרים פרטים ב־' + pending.length + '.');
-    } else {
-      UI.toast('חסרים פרטים — נא להשלים למטה.');
-      el('draftSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
+    var missing = parsed.filter(function (rec) { return rec.missing.length; }).length;
+    UI.toast(missing
+      ? 'זוהו ' + parsed.length + ' רשומות, חסרה כמות ב־' + missing + '.'
+      : 'זוהו ' + parsed.length + ' רשומות — אפשר לבדוק ולשמור.');
+    el('draftSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   function stripDraftFields(rec) {

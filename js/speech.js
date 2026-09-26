@@ -21,7 +21,7 @@
 
   /* base — מה שנשמע במקטעים שכבר הסתיימו, heard — המקטע הנוכחי,
      wanted — האם המשתמש עדיין רוצה להקשיב. */
-  var session = { base: '', heard: '', wanted: false, segments: [] };
+  var session = { base: '', heard: '', parts: [], wanted: false, segments: [] };
 
   var ERRORS = {
     'not-allowed': 'אין הרשאה למיקרופון. יש לאשר גישה בהגדרות הדפדפן ולנסות שוב.',
@@ -64,6 +64,39 @@
     return joinSpoken(heard, said);              /* מקטע חדש באמת */
   }
 
+  /* כל תוצאה סופית היא סוף מקטע דיבור — כלומר הפסקה. שומרים את המקטעים
+     בנפרד ולא רק כטקסט אחד, כי הגבולות האלה הם מה שמאפשר לפצל רשימה
+     שהוכתבה. גרסה מצטברת של המקטע האחרון מחליפה אותו במקום להוסיף לו. */
+  function foldIntoParts(parts, said) {
+    if (!parts.length) return [said];
+    var last = parts[parts.length - 1];
+    if (extendsText(said, last)) { parts[parts.length - 1] = said; return parts; }
+    if (extendsText(last, said)) return parts;
+    /* גרסה מתוקנת שמתחילה באמצע מה שכבר נשמע היא אותו מקטע, לא מקטע חדש. */
+    var merged = overlapMerge(last, said);
+    if (merged) { parts[parts.length - 1] = merged; return parts; }
+    parts.push(said);
+    return parts;
+  }
+
+  /* חפיפה בין סוף אחד לתחילת השני, ורק על גבול מילה שלמה. */
+  function overlapMerge(before, said) {
+    var max = Math.min(before.length, said.length);
+    for (var n = max; n >= 3; n--) {
+      if (before.slice(before.length - n) !== said.slice(0, n)) continue;
+      var startsAtWord = n === before.length || before.charAt(before.length - n - 1) === ' ';
+      var rest = said.slice(n);
+      if (startsAtWord && (rest === '' || rest.charAt(0) === ' ')) {
+        return joinSpoken(before, rest.replace(/^\s+/, ''));
+      }
+    }
+    return '';
+  }
+
+  function partsText(parts) {
+    return parts.reduce(function (text, part) { return joinSpoken(text, part); }, '');
+  }
+
   function spokenSoFar() {
     return joinSpoken(session.base, session.heard);
   }
@@ -86,18 +119,19 @@
     rec.onresult = function (event) {
       /* קוראים בכל פעם את כל הרשימה ולא מוסיפים למה שכבר נאסף: אותה תוצאה
          נמסרת שוב כשהיא מתעדכנת וכשהיא הופכת סופית, וצבירה שלהן היא הכפלה. */
-      var heard = '';
+      var parts = [];
       var interim = '';
 
       for (var i = 0; i < event.results.length; i++) {
         var result = event.results[i];
         var said = String((result[0] && result[0].transcript) || '').trim();
         if (!said) continue;
-        if (result.isFinal) heard = foldSpoken(heard, said);
+        if (result.isFinal) parts = foldIntoParts(parts, said);
         else interim = foldSpoken(interim, said);
       }
 
-      session.heard = heard;
+      session.parts = parts;
+      session.heard = partsText(parts);
       if (handlers.onProgress) {
         handlers.onProgress(joinSpoken(spokenSoFar(), interim));
       }
@@ -114,11 +148,12 @@
     rec.onend = function () {
       /* נשלח בסוף כל מקטע דיבור. כל עוד המשתמש לא עצר, מקפלים את מה שנשמע
          לתוך הבסיס וממשיכים להקשיב — בלי לדווח על סיום, וכך בלי לשמור רשומה. */
-      if (session.heard) session.segments.push(session.heard);
+      if (session.parts.length) session.segments = session.segments.concat(session.parts);
 
       if (session.wanted) {
         session.base = spokenSoFar();
         session.heard = '';
+        session.parts = [];
         try {
           rec.start();
           return;
@@ -130,7 +165,7 @@
       /* גבולות המקטעים הם המקומות שבהם המשתמש עצר לנשום, וזה בדיוק המקום שבו
          אנשים מפרידים בין פריטים ברשימה. מי שקורא לנו מחליט מה לעשות בזה. */
       var segments = session.segments.slice();
-      session = { base: '', heard: '', wanted: false, segments: [] };
+      session = { base: '', heard: '', parts: [], wanted: false, segments: [] };
       if (handlers.onEnd) handlers.onEnd(finalText, segments);
     };
 
@@ -145,7 +180,7 @@
       return false;
     }
 
-    session = { base: '', heard: '', wanted: true, segments: [] };
+    session = { base: '', heard: '', parts: [], wanted: true, segments: [] };
 
     try {
       if (!recognition) recognition = create();
