@@ -202,6 +202,11 @@ textarea#entryInput:focus, input:focus, select:focus { outline: 2px solid var(--
   display: block;
 }
 
+/* בזמן הקלטה המיקרופון מתחלף בריבוע עצירה. */
+.mic-btn .stop-glyph { display: none; }
+.mic-btn.is-listening .mic-glyph { display: none; }
+.mic-btn.is-listening .stop-glyph { display: block; }
+
 .mic-btn:hover:not(:disabled) { transform: scale(1.04); }
 .mic-btn:disabled { opacity: .45; cursor: not-allowed; }
 

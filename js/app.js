@@ -172,6 +172,9 @@
     var btn = el('btnMic');
     btn.classList.toggle('is-listening', listening);
     btn.setAttribute('aria-pressed', listening ? 'true' : 'false');
+    /* הסמל מתחלף לריבוע עצירה, ולכן גם שם הכפתור מתאר את הפעולה הנוכחית. */
+    btn.setAttribute('aria-label', listening ? 'עצירת ההכתבה' : 'הכתבה קולית');
+    btn.title = listening ? 'עצירת ההכתבה' : 'הכתבה קולית בעברית';
     if (!listening && el('micStatus').textContent === 'מקשיב… אפשר לדבר, ולחיצה נוספת מסיימת.') {
       el('micStatus').textContent = '';
     }
