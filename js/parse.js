@@ -38,7 +38,31 @@
     return out;
   }
 
-  var NUMBER_WORD_ALT = altOf(Object.keys(L.NUMBER_WORDS));
+  /* מספרים מורכבים: "שלושים ושתיים דקות", "מאה ועשרים גרם". נבנים מהמילון
+     במקום להיכתב אחת אחת, וקיומם כאן הוא גם מה שמונע מו' החיבור שבתוכם לפצל
+     את המשפט לשתי רשומות. */
+  var TENS = { 'עשרים': 20, 'שלושים': 30, 'ארבעים': 40, 'חמישים': 50, 'שישים': 60, 'שבעים': 70, 'שמונים': 80, 'תשעים': 90 };
+  var HUNDREDS = { 'מאה': 100, 'מאתיים': 200 };
+  var SINGLES = ['אחד', 'אחת', 'שניים', 'שתיים', 'שני', 'שתי', 'שלוש', 'שלושה',
+    'ארבע', 'ארבעה', 'חמש', 'חמישה', 'שש', 'שישה', 'ששה', 'שבע', 'שבעה', 'שמונה', 'תשע', 'תשעה'];
+
+  var NUMBER_LOOKUP = {};
+  Object.keys(L.NUMBER_WORDS).forEach(function (word) { NUMBER_LOOKUP[word] = L.NUMBER_WORDS[word]; });
+  Object.keys(TENS).forEach(function (tens) {
+    SINGLES.forEach(function (single) {
+      NUMBER_LOOKUP[tens + ' ו' + single] = TENS[tens] + L.NUMBER_WORDS[single];
+    });
+  });
+  Object.keys(HUNDREDS).forEach(function (hundred) {
+    Object.keys(TENS).forEach(function (tens) {
+      NUMBER_LOOKUP[hundred + ' ו' + tens] = HUNDREDS[hundred] + TENS[tens];
+    });
+    SINGLES.forEach(function (single) {
+      NUMBER_LOOKUP[hundred + ' ו' + single] = HUNDREDS[hundred] + L.NUMBER_WORDS[single];
+    });
+  });
+
+  var NUMBER_WORD_ALT = altOf(Object.keys(NUMBER_LOOKUP));
   var FRACTION_ALT = Object.keys(L.FRACTION_CHARS).map(escapeRe).join('|');
 
   var DIGIT_NUM = NO_DIGIT_BEFORE + '\\d+(?:\\.\\d+)?(?:\\s*\\/\\s*\\d+)?';
@@ -85,10 +109,10 @@
       return den ? parseFloat(parts[0]) / den : null;
     }
     if (/^\d+(?:\.\d+)?$/.test(s)) return parseFloat(s);
-    if (L.NUMBER_WORDS[s] != null) return L.NUMBER_WORDS[s];
+    if (NUMBER_LOOKUP[s] != null) return NUMBER_LOOKUP[s];
     /* אף מספר במילים אינו פותח באותיות השימוש, ולכן אפשר להסיר אותן בבטחה. */
     var word = s.replace(/^[ובכל]{1,2}/, '');
-    if (L.NUMBER_WORDS[word] != null) return L.NUMBER_WORDS[word];
+    if (NUMBER_LOOKUP[word] != null) return NUMBER_LOOKUP[word];
     return null;
   }
 
@@ -312,6 +336,15 @@
       });
     }
 
+    /* יחידת זמן בלי מספר היא אחת: "הלכתי שעה", "אימון של שעה". */
+    if (rec.durationMin == null) {
+      consume(state, token(TIME_ALT), function (m) {
+        var unit = L.timeUnitIndex[stripPrefix(m[1])] || L.timeUnitIndex[m[1]];
+        if (!unit) return false;
+        rec.durationMin = round1(unit.minutes);
+      });
+    }
+
     consume(state, '(' + NUM + ')\\s*' + token(DIST_ALT), function (m) {
       var n = parseNumberToken(m[1]);
       var unit = L.distanceUnitIndex[stripPrefix(m[2])] || L.distanceUnitIndex[m[2]];
@@ -353,12 +386,24 @@
       rec.intensity = it.key;
     });
 
+    /* אוספים את כל שמות הפעילות שבמשפט, לא רק את הראשון: "התאמנתי בחדר כושר"
+       פותח בפועל כללי וממשיך בפעילות עצמה, ומה שלא נאסף היה נשאר כהערה. */
+    var found = [];
+    var more = true;
+    while (more) {
+      more = consume(state, token(ACTIVITY_ALT), function (m) {
+        var act = L.activityIndex[stripPrefix(m[1])] || L.activityIndex[m[1]];
+        if (!act) return false;
+        found.push(act.name);
+      });
+    }
+
+    /* שם מפורש עדיף על "אימון" הכללי. */
     var activityName = null;
-    consume(state, token(ACTIVITY_ALT), function (m) {
-      var act = L.activityIndex[stripPrefix(m[1])] || L.activityIndex[m[1]];
-      if (!act) return false;
-      activityName = act.name;
-    });
+    for (var i = 0; i < found.length && !activityName; i++) {
+      if (found[i] !== 'אימון') activityName = found[i];
+    }
+    if (!activityName && found.length) activityName = found[0];
 
     if (!activityName && rec.steps != null) activityName = 'הליכה';
     rec.activityName = activityName;
@@ -399,10 +444,14 @@
 
     tokens.forEach(function (token, index) {
       var bare = token.replace(/^ו-?/, '');
+      /* "שלושים ושתיים" הוא מספר אחד, לא שני פריטים. */
+      var previous = index > 0 ? stripPrefix(tokens[index - 1]) : '';
+      var insideNumber = NUMBER_LOOKUP[previous] != null && NUMBER_LOOKUP[bare] != null;
       var splits = index > 0 &&
         /^ו/.test(token) &&
         bare.length > 1 &&
         !VAV_BLOCKED[token] &&
+        !insideNumber &&
         current.length > 0;
 
       if (splits) {

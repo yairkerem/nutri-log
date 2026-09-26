@@ -143,7 +143,31 @@ var CASES = [
   { input: 'תפוח אחד',
     expect: [{ type: 'food', name: 'תפוח', amount: 1, unit: 'unit' }] },
   { input: 'אכלתי ביצה אחת',
-    expect: [{ type: 'food', name: 'ביצה', amount: 1, unit: 'unit' }] }
+    expect: [{ type: 'food', name: 'ביצה', amount: 1, unit: 'unit' }] },
+
+  /* אימונים בניסוח מדובר */
+  { input: 'עכשיו סיימתי אימון של שעתיים',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 120, note: '' }] },
+  { input: 'סיימתי הרגע אימון בן שעה',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 60, note: '' }] },
+  { input: 'הלכתי שעה',
+    expect: [{ type: 'workout', name: 'הליכה', durationMin: 60 }] },
+  /* מספר מורכב: ו' שבתוכו אינה מפצלת, והערך מחובר */
+  { input: 'רצתי חמישה קילומטר בשלושים ושתיים דקות',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 32, distanceKm: 5 }] },
+  { input: 'יוגה ארבעים וחמש דקות',
+    expect: [{ type: 'workout', name: 'יוגה', durationMin: 45 }] },
+  { input: 'מאה ועשרים גרם אורז',
+    expect: [{ type: 'food', name: 'אורז', amount: 120, unit: 'g' }] },
+  /* אלפים, ושם פעילות מפורש שגובר על הפועל הכללי */
+  { input: 'הלכתי עשרת אלפים צעדים',
+    expect: [{ type: 'workout', name: 'הליכה', steps: 10000 }] },
+  { input: 'התאמנתי בחדר כושר שעה וחצי',
+    expect: [{ type: 'workout', name: 'חדר כושר', durationMin: 90, note: '' }] },
+  { input: 'אימון בטן עשרים דקות',
+    expect: [{ type: 'workout', name: 'כפיפות בטן', durationMin: 20, note: '' }] },
+  { input: 'רכבתי על אופניים עשרים קילומטר',
+    expect: [{ type: 'workout', name: 'אופניים', distanceKm: 20, note: '' }] }
 ];
 
 function actualValue(rec, key) {
