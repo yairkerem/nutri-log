@@ -4,9 +4,22 @@
 
   var L = global.Lexicon;
 
-  /* גבולות מילה בעברית: \b של JS לא עובד על אותיות עבריות. */
-  var BL = '(?<![א-תA-Za-z0-9])';
+  /* גבולות מילה בעברית: \b של JS לא עובד על אותיות עבריות, ולכן הגבול השמאלי
+     נשען על lookbehind. דפדפנים ישנים (Safari לפני 16.4) זורקים שגיאה כבר על
+     בניית הביטוי, ולכן בודקים זאת פעם אחת ונופלים לגבול רופף יותר במקום
+     להשאיר את האפליקציה בלי ניתוח טקסט בכלל. */
+  var SUPPORTS_LOOKBEHIND = (function () {
+    try {
+      new RegExp('(?<!a)b');
+      return true;
+    } catch (err) {
+      return false;
+    }
+  })();
+
+  var BL = SUPPORTS_LOOKBEHIND ? '(?<![א-תA-Za-z0-9])' : '';
   var BR = '(?![א-תA-Za-z0-9])';
+  var NO_DIGIT_BEFORE = SUPPORTS_LOOKBEHIND ? '(?<![0-9])' : '';
   var PREFIX = '(?:[ובכלה]{0,2}-?)';
 
   function escapeRe(s) {
@@ -28,7 +41,7 @@
   var NUMBER_WORD_ALT = altOf(Object.keys(L.NUMBER_WORDS));
   var FRACTION_ALT = Object.keys(L.FRACTION_CHARS).map(escapeRe).join('|');
 
-  var DIGIT_NUM = '(?<![0-9])\\d+(?:\\.\\d+)?(?:\\s*\\/\\s*\\d+)?';
+  var DIGIT_NUM = NO_DIGIT_BEFORE + '\\d+(?:\\.\\d+)?(?:\\s*\\/\\s*\\d+)?';
   var WORD_NUM = BL + 'ו?(?:' + NUMBER_WORD_ALT + ')' + BR;
   var NUM = '(?:' + DIGIT_NUM + '|' + FRACTION_ALT + '|' + WORD_NUM + ')';
 
@@ -144,7 +157,7 @@
       });
     }
     if (hour == null) {
-      consume(state, '(?<![0-9])(\\d{1,2}):(\\d{2})(?![0-9])', function (m) {
+      consume(state, NO_DIGIT_BEFORE + '(\\d{1,2}):(\\d{2})(?![0-9])', function (m) {
         hour = parseInt(m[1], 10);
         minute = parseInt(m[2], 10);
         explicit = true;
@@ -154,7 +167,7 @@
       /* "ב-8 בבוקר" היא שעה; "ב-32 דקות" הוא משך, ולכן נדרש הקשר של חלק ביום
          (או סוף המשפט, ורק ברשומת אוכל שבה אין משך בכלל). */
       var tail = '\\s*(?=' + PART_OF_DAY_ALT + (type === 'food' ? '|\\s*$' : '') + ')';
-      consume(state, '(?<![0-9:])ב-?(\\d{1,2})(?::(\\d{2}))?' + tail, function (m) {
+      consume(state, NO_DIGIT_BEFORE + 'ב-?(\\d{1,2})(?::(\\d{2}))?' + tail, function (m) {
         var h = parseInt(m[1], 10);
         if (h > 23) return false;
         hour = h;

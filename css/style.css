@@ -655,6 +655,23 @@ input.num.needs {
 
 .sheet::backdrop { background: rgba(10, 18, 17, .5); }
 
+/* דפדפן שאינו תומך ב-<dialog> מתייחס אליו כאל אלמנט רגיל, ולכן הוא היה מוצג
+   תמיד. שתי השורות הבאות נותנות לו התנהגות של חלון גם שם. */
+.sheet:not([open]) { display: none; }
+
+.sheet.is-fallback[open] {
+  position: fixed;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  transform: translate(50%, -50%);
+  margin: 0;
+  z-index: 60;
+  /* צל ענק במקום ::backdrop, שאינו קיים במסלול הזה */
+  box-shadow: 0 0 0 100vmax rgba(10, 18, 17, .5), var(--shadow);
+}
+
+[dir="ltr"] .sheet.is-fallback[open] { transform: translate(-50%, -50%); }
+
 .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; flex: 1; }
 
 .field label { font-size: .8rem; color: var(--muted); }

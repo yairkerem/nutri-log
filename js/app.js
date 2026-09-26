@@ -628,8 +628,20 @@
   }
 
   function showVersion() {
-    el('versionNote').textContent = 'גרסה ' + currentVersion() + ' פועלת כעת.';
-    el('btnUpdate').disabled = false;
+    el('versionNote').textContent = 'גרסה ' + currentVersion() + ' פועלת כעת. ' + browserSupport();
+    if (el('btnUpdate')) el('btnUpdate').disabled = false;
+  }
+
+  /* שורת אבחון קצרה: בטלפון אין קונסולה, וזה מה שמסביר תקלות בדפדפנים ישנים. */
+  function browserSupport() {
+    var dialog = typeof document.createElement('dialog').showModal === 'function';
+    var lookbehind = true;
+    try { new RegExp('(?<!a)b'); } catch (err) { lookbehind = false; }
+    var speech = Speech.isSupported();
+    function mark(ok) { return ok ? '✓' : '✗'; }
+    return 'תמיכת הדפדפן: חלונות ' + mark(dialog) +
+      ' · ניתוח טקסט ' + mark(lookbehind) +
+      ' · הכתבה ' + mark(speech) + '.';
   }
 
   function fetchLatestVersion() {

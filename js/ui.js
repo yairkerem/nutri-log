@@ -477,14 +477,26 @@
 
   /* ─────────── דיאלוגים והודעות ─────────── */
 
+  /* דפדפנים ישנים (Safari לפני 15.4, למשל) אינם מכירים <dialog>: שם אין
+     showModal, ואין גם הסתרה אוטומטית. במקרה כזה מסמנים את החלון כ-fallback
+     וה-CSS מציג אותו כחלון צף בעצמו. */
   function openDialog(dialog) {
-    if (typeof dialog.showModal === 'function') dialog.showModal();
-    else dialog.setAttribute('open', '');
+    if (typeof dialog.showModal === 'function') {
+      try {
+        dialog.showModal();
+        return;
+      } catch (err) { /* ממשיכים למסלול הפשוט */ }
+    }
+    dialog.classList.add('is-fallback');
+    dialog.setAttribute('open', '');
   }
 
   function closeDialog(dialog) {
-    if (typeof dialog.close === 'function') dialog.close();
-    else dialog.removeAttribute('open');
+    if (typeof dialog.close === 'function' && !dialog.classList.contains('is-fallback')) {
+      dialog.close();
+      return;
+    }
+    dialog.removeAttribute('open');
   }
 
   var toastTimer = null;
