@@ -372,15 +372,62 @@
 
   /* ─────────── חלוקה לפריטים ─────────── */
 
-  function splitSegments(text) {
+  var VAV_BLOCKED = {};
+  L.VAV_NOT_A_SPLIT.forEach(function (w) { VAV_BLOCKED[w] = true; });
+
+  /* "אורז וסלט" הם שתי רשומות, אבל "שעה וחצי" ו"גלידה וניל" אינן. מפצלים על
+     ו' החיבור רק כשהמילה שאחריה עומדת בפני עצמה. */
+  function splitOnVav(text) {
+    var tokens = text.split(' ').filter(Boolean);
+    var parts = [];
+    var current = [];
+
+    tokens.forEach(function (token, index) {
+      var bare = token.replace(/^ו-?/, '');
+      var splits = index > 0 &&
+        /^ו/.test(token) &&
+        bare.length > 1 &&
+        !VAV_BLOCKED[token] &&
+        current.length > 0;
+
+      if (splits) {
+        parts.push(current.join(' '));
+        current = [bare];
+      } else {
+        current.push(token);
+      }
+    });
+
+    if (current.length) parts.push(current.join(' '));
+    return parts.filter(function (part) { return part.trim().length > 0; });
+  }
+
+  /* "עם" מפריד רק כשמבקשים זאת במפורש: "קפה עם חלב" הוא פריט אחד. */
+  function splitOnWith(text) {
+    return text.split(new RegExp('\\sעם\\s')).map(function (part) { return part.trim(); });
+  }
+
+  function splitSegments(text, opts) {
+    opts = opts || {};
     var s = normalize(text);
     L.SPLIT_WORDS.slice().sort(function (a, b) { return b.length - a.length; })
       .forEach(function (w) {
         s = s.replace(new RegExp(BL + escapeRe(w) + BR, 'g'), ',');
       });
-    return s.split(/[,;\n]|\s\+\s/)
+
+    var segments = s.split(/[,;\n]|\s\+\s/)
       .map(function (part) { return part.trim(); })
       .filter(function (part) { return part.length > 0; });
+
+    var expanded = [];
+    segments.forEach(function (segment) {
+      splitOnVav(segment).forEach(function (part) {
+        if (opts.splitWith) expanded = expanded.concat(splitOnWith(part));
+        else expanded.push(part);
+      });
+    });
+
+    return expanded.filter(function (part) { return part.length > 0; });
   }
 
   /* ─────────── רשומה בודדת ─────────── */
@@ -439,10 +486,10 @@
     return hasEffort ? [] : ['effort'];
   }
 
-  function parse(text, now) {
+  function parse(text, now, opts) {
     now = now || new Date();
     if (!normalize(text)) return [];
-    return splitSegments(text).map(function (segment) {
+    return splitSegments(text, opts).map(function (segment) {
       return parseSegment(segment, now);
     }).filter(function (rec) {
       return rec.name && rec.name !== '';

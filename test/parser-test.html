@@ -77,7 +77,32 @@ var CASES = [
   { input: 'חצי אבטיח',
     expect: [{ type: 'food', amount: 0.5, unit: 'unit', name: 'אבטיח' }] },
   { input: 'שחיתי 40 דקות בבריכה',
-    expect: [{ type: 'workout', name: 'שחייה', durationMin: 40 }] }
+    expect: [{ type: 'workout', name: 'שחייה', durationMin: 40 }] },
+
+  /* פיצול ארוחה מרובת מרכיבים לרשומות נפרדות */
+  { input: 'אכלתי אורז, חזה עוף וסלט',
+    expect: [
+      { type: 'food', name: 'אורז' },
+      { type: 'food', name: 'חזה עוף' },
+      { type: 'food', name: 'סלט' }
+    ] },
+  { input: 'אכלתי 100 גרם אורז ו-150 גרם חזה עוף',
+    expect: [
+      { type: 'food', name: 'אורז', amount: 100, unit: 'g' },
+      { type: 'food', name: 'חזה עוף', amount: 150, unit: 'g' }
+    ] },
+  { input: 'שתיתי קפה ואכלתי עוגייה',
+    expect: [
+      { type: 'food', name: 'קפה' },
+      { type: 'food', name: 'עוגייה' }
+    ] },
+  /* ו' שאינה מפרידה: חלק מהמילה, או השלמה של כמות */
+  { input: 'אכלתי גלידה וניל',
+    expect: [{ type: 'food', name: 'גלידה וניל' }] },
+  { input: 'רצתי שעה וחצי',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 90 }] },
+  { input: 'שתיתי 250 מ"ל קפה עם חלב',
+    expect: [{ type: 'food', name: 'קפה עם חלב', amount: 250, unit: 'ml' }] }
 ];
 
 function actualValue(rec, key) {

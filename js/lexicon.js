@@ -145,6 +145,14 @@
   /* מפרידים בין פריטים באותו משפט. */
   var SPLIT_WORDS = ['וגם', 'ועוד', 'ואז', 'ואחר כך', 'אחר כך', 'ובנוסף', 'בנוסף', 'וכן', 'ולאחר מכן'];
 
+  /* מילים שמתחילות ב-ו' ואינן פריט חדש: או שה-ו' היא חלק מהמילה, או שהיא
+     משלימה כמות ("שעה וחצי"). אלה לא מפצלות רשומה. */
+  var VAV_NOT_A_SPLIT = [
+    'וחצי', 'ורבע', 'ושליש', 'ורבעים',
+    'וניל', 'ופל', 'וופל', 'ופלים', 'ויסקי', 'וודקה', 'ודקה', 'ויטמין', 'ויטמינים',
+    'ורד', 'ורוד', 'ורודה', 'וורדים', 'ותק', 'ועד', 'וזהו', 'ובכן'
+  ];
+
   function buildAliasIndex(list) {
     var index = {};
     list.forEach(function (item) {
@@ -166,6 +174,7 @@
     INTENSITIES: INTENSITIES,
     FILLER_WORDS: FILLER_WORDS,
     SPLIT_WORDS: SPLIT_WORDS,
+    VAV_NOT_A_SPLIT: VAV_NOT_A_SPLIT,
     unitIndex: buildAliasIndex(UNITS),
     timeUnitIndex: buildAliasIndex(TIME_UNITS),
     distanceUnitIndex: buildAliasIndex(DISTANCE_UNITS),

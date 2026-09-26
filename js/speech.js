@@ -7,6 +7,7 @@
   var listening = false;
   var handlers = {};
   var finalText = '';
+  var ended = false;
 
   var ERRORS = {
     'not-allowed': 'אין הרשאה למיקרופון. יש לאשר גישה בהגדרות הדפדפן ולנסות שוב.',
@@ -39,16 +40,22 @@
     rec.onstart = function () {
       listening = true;
       finalText = '';
+      ended = false;
       if (handlers.onStart) handlers.onStart();
     };
 
     rec.onresult = function (event) {
+      /* בכל אירוע בונים מחדש את כל התמליל מתוך event.results, ולא מוסיפים
+         לטקסט הקיים: הדפדפן מוסר לעיתים תוצאות סופיות שכבר נמסרו, וצבירה
+         שלהן הייתה משכפלת את מה שנאמר. */
+      var finals = '';
       var interim = '';
-      for (var i = event.resultIndex; i < event.results.length; i++) {
+      for (var i = 0; i < event.results.length; i++) {
         var result = event.results[i];
-        if (result.isFinal) finalText += result[0].transcript + ' ';
+        if (result.isFinal) finals += result[0].transcript + ' ';
         else interim += result[0].transcript;
       }
+      finalText = finals;
       if (handlers.onProgress) handlers.onProgress(finalText.trim(), interim.trim());
     };
 
@@ -60,6 +67,10 @@
 
     rec.onend = function () {
       listening = false;
+      /* onend עלול להישלח יותר מפעם אחת (עצירה ידנית ואחריה שגיאה, למשל),
+         ושמירה נוספת הייתה יוצרת רשומה כפולה. */
+      if (ended) return;
+      ended = true;
       if (handlers.onEnd) handlers.onEnd(finalText.trim());
     };
 

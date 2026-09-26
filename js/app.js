@@ -186,7 +186,8 @@
     UI.renderDrafts(drafts, {
       onChange: changeDraft,
       onSave: saveDraft,
-      onDiscard: discardDraft
+      onDiscard: discardDraft,
+      onSplit: splitDraft
     });
   }
 
@@ -246,6 +247,40 @@
   function discardDraft(key) {
     drafts = drafts.filter(function (item) { return item.key !== key; });
     renderDrafts();
+  }
+
+  /* פיצול ארוחה מרובת מרכיבים לרשומה נפרדת לכל מרכיב, כולל פיצול על "עם".
+     הכמות המקורית נשארת אצל המרכיב הראשון, והשאר יבקשו כמות משלהם. */
+  function splitDraft(key) {
+    var draft = findDraft(key);
+    if (!draft) return;
+
+    var source = (draft.name || draft.raw || '').trim();
+    var parts = Parser.parse(source, new Date(draft.ts), { splitWith: true });
+    if (parts.length < 2) {
+      UI.toast('אין מה לפצל ברשומה הזו.');
+      return;
+    }
+
+    var index = drafts.indexOf(draft);
+    var replacements = parts.map(function (rec, position) {
+      draftSeq++;
+      rec.key = 'd' + draftSeq;
+      rec.ts = draft.ts;
+      rec.tsExplicit = draft.tsExplicit;
+      rec.source = draft.source;
+      rec.raw = draft.raw;
+      if (position === 0 && draft.type === 'food' && rec.type === 'food' && draft.amount != null) {
+        rec.amount = draft.amount;
+        rec.unit = draft.unit;
+      }
+      rec.missing = Parser.missingFields(rec);
+      return rec;
+    });
+
+    drafts.splice.apply(drafts, [index, 1].concat(replacements));
+    renderDrafts();
+    UI.toast('פוצל ל־' + replacements.length + ' רשומות.');
   }
 
   /* ─────────── יומן ─────────── */

@@ -300,6 +300,15 @@
           onclick: function () { actions.onSave(draft.key, true); }
         }, ['שמירה ללא כמות']));
       }
+
+      /* "קפה עם חלב" נשמר כפריט אחד, אבל אפשר לבקש לפצל גם אותו. */
+      if (canSplitDraft(draft)) {
+        buttons.push(h('button', {
+          class: 'ghost-btn small', type: 'button',
+          title: 'פיצול לרשומה נפרדת לכל מרכיב',
+          onclick: function () { actions.onSplit(draft.key); }
+        }, ['פיצול']));
+      }
       buttons.push(h('button', {
         class: 'danger-btn small', type: 'button',
         onclick: function () { actions.onDiscard(draft.key); }
@@ -310,6 +319,12 @@
     });
 
     if (firstMissing) firstMissing.focus({ preventScroll: true });
+  }
+
+  function canSplitDraft(draft) {
+    var source = (draft.name || draft.raw || '').trim();
+    if (!source) return false;
+    return global.Parser.parse(source, new Date(draft.ts), { splitWith: true }).length > 1;
   }
 
   function numField(label, value, needs, onInput, onCreate) {
