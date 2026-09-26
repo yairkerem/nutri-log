@@ -499,6 +499,28 @@
     return hasEffort ? [] : ['effort'];
   }
 
+  /* רשת ביטחון להכתבה: מנוע שמוסר את אותו משפט שוב ושוב יוצר טקסט כפול, וכאן
+     מכווצים חזרות רצופות של אותו רצף מילים. פועל על טקסט מוכתב בלבד. */
+  function collapseRepeats(text) {
+    var words = normalize(text).split(' ').filter(Boolean);
+    var longest = Math.min(12, Math.floor(words.length / 2));
+
+    for (var size = longest; size >= 1; size--) {
+      var at = 0;
+      while (at + size * 2 <= words.length) {
+        var first = words.slice(at, at + size).join(' ');
+        var second = words.slice(at + size, at + size * 2).join(' ');
+        if (first === second) {
+          words.splice(at + size, size); /* נשארים באותו מקום, אולי יש עוד חזרה */
+        } else {
+          at++;
+        }
+      }
+    }
+
+    return words.join(' ');
+  }
+
   function parse(text, now, opts) {
     now = now || new Date();
     if (!normalize(text)) return [];
@@ -517,6 +539,7 @@
     parseSegment: parseSegment,
     splitSegments: splitSegments,
     normalize: normalize,
+    collapseRepeats: collapseRepeats,
     parseNumberToken: parseNumberToken,
     missingFields: missingFields,
     detectType: detectType

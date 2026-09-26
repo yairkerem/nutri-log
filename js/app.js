@@ -182,9 +182,8 @@
         el('micStatus').classList.remove('is-warn');
         el('micStatus').textContent = 'מקשיב… אפשר לדבר, ולחיצה נוספת מסיימת.';
       },
-      onProgress: function (finalText, interim) {
-        var joined = [voiceBase, finalText, interim].filter(Boolean).join(' ');
-        el('entryInput').value = joined;
+      onProgress: function (spoken) {
+        el('entryInput').value = [voiceBase, spoken].filter(Boolean).join(' ');
       },
       onError: function (message) {
         setMicState(false);
@@ -195,7 +194,9 @@
       },
       onEnd: function (finalText) {
         setMicState(false);
-        var combined = [voiceBase, finalText].filter(Boolean).join(' ').trim();
+        /* מה שהוכתב מנוקה מחזרות לפני שהוא נשמר, ומוצג נקי גם בתיבה. */
+        var spoken = Parser.collapseRepeats(finalText || '');
+        var combined = [voiceBase, spoken].filter(Boolean).join(' ').trim();
         el('entryInput').value = combined;
         if (finalText) {
           el('micStatus').textContent = '';

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>בדיקות להכתבה</title>
+<style>
+  body { font-family: "Segoe UI", Arial, sans-serif; margin: 20px; background: #f7f7f7; color: #111; }
+  h1 { font-size: 1.1rem; }
+  #summary { font-weight: 700; margin: 10px 0 16px; }
+  table { border-collapse: collapse; width: 100%; background: #fff; font-size: .86rem; }
+  th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: start; vertical-align: top; }
+  tr.pass td:first-child { color: #15803d; font-weight: 700; }
+  tr.fail { background: #fef2f2; }
+  tr.fail td:first-child { color: #b91c1c; font-weight: 700; }
+  p { max-width: 74ch; line-height: 1.6; }
+</style>
+</head>
+<body>
+<h1>בדיקות להכתבה</h1>
+<p>
+  שתי הכפלות שונות נבדקות כאן, ושתיהן נובעות מהתנהגות אמיתית של מנועי הכתבה.
+  <strong>הכפלת טקסט</strong>: מנוע שמתמלל מחדש את כל המשפט בכל פעם ומסמן כל גרסה כסופית, או
+  שמוסר שוב תוצאות שכבר נמסרו. <strong>הכפלת רשומות</strong>: <code>onend</code> נשלח בסוף כל
+  מקטע דיבור ולא בסוף ההכתבה, ולכן נבדק שהסיום מדווח פעם אחת בלבד — כי כל דיווח סיום שומר רשומה.
+</p>
+<p id="summary">מריץ…</p>
+<table>
+  <thead><tr><th>מצב</th><th>מה המנוע מוסר</th><th>התקבל</th><th>ציפייה</th><th>דיווחי סיום</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+
+<script>
+/* מנוע מדומה. כל הפעלה מוסרת "מקטע דיבור" אחד ואז שולחת onend, בדיוק כפי
+   שמנוע אמיתי סוגר מקטע בכל הפסקה. כשנגמרים המקטעים, המשתמש המדומה עוצר. */
+function FakeRecognition() {}
+
+FakeRecognition.prototype.start = function () {
+  var self = this;
+  setTimeout(function () {
+    if (self.onstart) self.onstart({});
+
+    var batch = window.FAKE_BATCHES.length ? window.FAKE_BATCHES.shift() : [];
+    var delivered = [];
+    batch.forEach(function (piece) {
+      delivered.push({ isFinal: true, 0: { transcript: piece }, length: 1 });
+      if (self.onresult) self.onresult({ resultIndex: 0, results: delivered.slice() });
+    });
+
+    /* אין עוד מה לומר — המשתמש לוחץ על עצירה, ורק אז הסיום אמיתי. */
+    if (!window.FAKE_BATCHES.length) Speech.stop();
+    if (self.onend) self.onend({});
+  }, 0);
+};
+
+FakeRecognition.prototype.stop = function () {};
+FakeRecognition.prototype.abort = function () {};
+window.SpeechRecognition = FakeRecognition;
+</script>
+
+<script src="../js/lexicon.js"></script>
+<script src="../js/parse.js"></script>
+<script src="../js/speech.js"></script>
+
+<script>
+var SENTENCE = 'אכלתי סלט עם עגבניות';
+
+var CASES = [
+  { name: 'מקטעים נפרדים',
+    batches: [['אכלתי סלט', 'עם עגבניות']], expect: SENTENCE },
+
+  { name: 'תמליל מצטבר',
+    batches: [['אכלתי', 'אכלתי סלט', SENTENCE]], expect: SENTENCE },
+
+  { name: 'מסירה חוזרת של אותה תוצאה',
+    batches: [[SENTENCE, SENTENCE, SENTENCE]], expect: SENTENCE },
+
+  { name: 'חפיפה בין מקטעים',
+    batches: [['אכלתי סלט עם', 'סלט עם עגבניות']], expect: SENTENCE },
+
+  { name: 'שתי הפסקות באמצע המשפט',
+    batches: [['אכלתי סלט'], ['עם עגבניות'], ['ורצתי 5 קילומטר']],
+    expect: 'אכלתי סלט עם עגבניות ורצתי 5 קילומטר' },
+
+  { name: 'מצטבר בכל מקטע, עם הפסקה',
+    batches: [['אכלתי', 'אכלתי סלט'], ['עם', 'עם עגבניות']],
+    expect: SENTENCE }
+];
+
+function runCase(testCase) {
+  return new Promise(function (resolve) {
+    window.FAKE_BATCHES = testCase.batches.map(function (b) { return b.slice(); });
+    var ends = [];
+    Speech.start({
+      onEnd: function (finalText) {
+        ends.push(Parser.collapseRepeats(finalText));
+        /* ממתינים רגע, כדי לתפוס דיווח סיום נוסף אם הוא קיים */
+        setTimeout(function () { resolve({ text: ends[0], ends: ends.length }); }, 40);
+      },
+      onError: function (message) { resolve({ text: 'שגיאה: ' + message, ends: ends.length }); }
+    });
+  });
+}
+
+(function next(index, passed) {
+  if (index >= CASES.length) {
+    document.getElementById('summary').textContent = 'עברו ' + passed + ' מתוך ' + CASES.length + ' בדיקות';
+    return;
+  }
+  var testCase = CASES[index];
+  runCase(testCase).then(function (result) {
+    var ok = result.text === testCase.expect && result.ends === 1;
+    var tr = document.createElement('tr');
+    tr.className = ok ? 'pass' : 'fail';
+    [
+      ok ? 'עבר' : 'נכשל',
+      testCase.batches.map(function (b) { return b.join(' | '); }).join('  ⏸  '),
+      result.text,
+      testCase.expect,
+      String(result.ends)
+    ].forEach(function (text) {
+      var td = document.createElement('td');
+      td.textContent = text;
+      tr.appendChild(td);
+    });
+    document.getElementById('rows').appendChild(tr);
+    next(index + 1, passed + (ok ? 1 : 0));
+  });
+})(0, 0);
+</script>
+</body>
+</html>
