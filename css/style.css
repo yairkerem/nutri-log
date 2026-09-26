@@ -482,6 +482,8 @@ textarea#entryInput:focus, input:focus, select:focus { outline: 2px solid var(--
 
 .inline-label { font-size: .8rem; color: var(--muted); }
 
+.draft-end { font-size: .82rem; color: var(--muted); align-self: center; }
+
 input.num, input.time, input.date, select.unit {
   padding: 7px 9px;
   border: 1px solid var(--line);

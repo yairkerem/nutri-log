@@ -302,9 +302,23 @@
         });
         fields.appendChild(quick);
       } else {
+        /* שעת הסיום נגזרת מההתחלה ומהמשך, ומתעדכנת בזמן ההקלדה — אימון הוא
+           פרק זמן, ולראות רק את תחילתו אינו מספיק כדי לאשר אותו. */
+        var endLabel = h('span', { class: 'draft-end' });
+        var updateEnd = function () {
+          var start = new Date(draft.ts);
+          endLabel.textContent = draft.durationMin
+            ? 'עד ' + heTime(new Date(start.getTime() + draft.durationMin * 60000))
+            : '';
+        };
+
         fields.appendChild(numField('דקות', draft.durationMin, needsEffort, function (value) {
           actions.onChange(draft.key, { durationMin: value }, true);
+          updateEnd();
         }, function (input) { if (needsEffort && !firstMissing) firstMissing = input; }));
+
+        updateEnd();
+        fields.appendChild(endLabel);
       }
 
       card.appendChild(fields);
@@ -315,7 +329,9 @@
       var timeInput = h('input', { class: 'time', type: 'text', inputmode: 'numeric', maxlength: '5', value: timeInputValue(draft.ts), 'aria-label': 'שעה', placeholder: 'HH:MM' });
       function pushTime() {
         var next = combineDateTime(dateInput.value, timeInput.value, date);
-        if (next) actions.onChange(draft.key, { ts: next.toISOString() }, true);
+        if (!next) return;
+        actions.onChange(draft.key, { ts: next.toISOString() }, true);
+        if (draft.type === 'workout') renderDrafts(drafts, actions);
       }
       dateInput.addEventListener('change', pushTime);
       timeInput.addEventListener('change', pushTime);
@@ -444,6 +460,41 @@
 
     /* הכפתור פעיל רק כשיש באמת מה לפצל, ומתעדכן תוך כדי עריכת השם. */
     on('editName', 'input', refreshSplitState);
+
+    /* משך ושעת סיום הם שני צדדים של אותו דבר: עריכת אחד מעדכנת את השני, וכך
+       אפשר לרשום אימון גם לפי "מ-19:00 עד 20:30" וגם לפי "90 דקות". */
+    on('editDuration', 'input', syncEndFromDuration);
+    on('editDate', 'change', syncEndFromDuration);
+    on('editTime', 'change', syncEndFromDuration);
+    on('editEnd', 'input', syncDurationFromEnd);
+  }
+
+  function editStart() {
+    return combineDateTime(el('editDate').value, el('editTime').value, new Date());
+  }
+
+  function syncEndFromDuration() {
+    if (el('editDialog').dataset.type !== 'workout') return;
+    var start = editStart();
+    var minutes = parseFloat(el('editDuration').value);
+    if (!start || !isFinite(minutes) || minutes <= 0) {
+      el('editEnd').value = '';
+      return;
+    }
+    el('editEnd').value = timeInputValue(new Date(start.getTime() + minutes * 60000));
+  }
+
+  function syncDurationFromEnd() {
+    if (el('editDialog').dataset.type !== 'workout') return;
+    var start = editStart();
+    var clock = String(el('editEnd').value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+    if (!start || !clock) return;
+
+    var end = new Date(start.getTime());
+    end.setHours(parseInt(clock[1], 10), parseInt(clock[2], 10), 0, 0);
+    /* סיום מוקדם מההתחלה פירושו שהאימון חצה את חצות. */
+    if (end <= start) end.setDate(end.getDate() + 1);
+    el('editDuration').value = Math.round((end - start) / 60000);
   }
 
   function refreshSplitState() {
@@ -477,6 +528,7 @@
     el('editMeal').value = rec.meal || '';
     el('editCalories').value = rec.calories != null ? rec.calories : '';
     el('editDuration').value = rec.durationMin != null ? rec.durationMin : '';
+    el('editEnd').value = rec.endsAt ? timeInputValue(rec.endsAt) : '';
     el('editIntensity').value = rec.intensity || '';
     el('editNote').value = rec.note || '';
     /* טקסט מקורי ארוך במיוחד מוצג מקוצר, כדי שלא ימתח את החלון. */
