@@ -52,6 +52,8 @@
       if (rec.amount != null) parts.push(formatNum(rec.amount) + (unitLabel(rec) ? ' ' + unitLabel(rec) : ''));
       if (rec.calories != null) parts.push(formatNum(rec.calories) + ' קלוריות');
     } else {
+      /* אימון הוא פרק זמן: מוצג מתי התחיל ומתי נגמר. */
+      if (rec.endsAt) parts.push(heTime(rec.ts) + '–' + heTime(rec.endsAt));
       if (rec.durationMin != null) parts.push(formatNum(rec.durationMin) + ' דקות');
       if (rec.distanceKm != null) parts.push(formatNum(rec.distanceKm) + ' ק"מ');
       if (rec.steps != null) parts.push(rec.steps.toLocaleString('he-IL') + ' צעדים');
@@ -333,7 +335,12 @@
       timeInput.addEventListener('change', pushTime);
 
       card.appendChild(h('div', { class: 'draft-time' }, [
-        h('span', { class: 'draft-time-label', text: draft.tsExplicit ? 'זמן מהטקסט:' : 'זמן התיעוד:' }),
+        h('span', {
+          class: 'draft-time-label',
+          text: draft.type === 'workout'
+            ? 'תחילת האימון:'
+            : (draft.tsExplicit ? 'זמן מהטקסט:' : 'זמן התיעוד:')
+        }),
         timeInput, dateInput
       ]));
 

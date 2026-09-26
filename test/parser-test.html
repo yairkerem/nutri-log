@@ -167,13 +167,30 @@ var CASES = [
   { input: 'אימון בטן עשרים דקות',
     expect: [{ type: 'workout', name: 'כפיפות בטן', durationMin: 20, note: '' }] },
   { input: 'רכבתי על אופניים עשרים קילומטר',
-    expect: [{ type: 'workout', name: 'אופניים', distanceKm: 20, note: '' }] }
+    expect: [{ type: 'workout', name: 'אופניים', distanceKm: 20, note: '' }] },
+
+  /* לאימון יש התחלה וסוף, והניסוח קובע באיזה קצה נאמר המשפט.
+     שעת העוגן של הבדיקות היא 14:30. */
+  { input: 'עכשיו סיימתי אימון של שעתיים',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 120, hour: 12, minute: 30, endHour: 14 }] },
+  { input: 'מתחיל אימון של שעתיים',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 120, hour: 14, minute: 30, endHour: 16 }] },
+  { input: 'רצתי חצי שעה',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 30, hour: 14, minute: 0, endHour: 14 }] },
+  /* שעה מפורשת היא שעת ההתחלה */
+  { input: 'רצתי בשעה 8 חצי שעה',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 30, hour: 8, minute: 0, endHour: 8 }] }
 ];
 
 function actualValue(rec, key) {
   var date = new Date(rec.ts);
   if (key === 'hour') return date.getHours();
   if (key === 'minute') return date.getMinutes();
+  /* שעת הסיום נגזרת: תחילת האימון ועוד המשך שלו */
+  if (key === 'endHour') {
+    if (!rec.durationMin) return null;
+    return new Date(date.getTime() + rec.durationMin * 60000).getHours();
+  }
   if (key === 'dayShift') {
     var a = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     var b = new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate());

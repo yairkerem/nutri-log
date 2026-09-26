@@ -75,7 +75,18 @@
       createdAt: input.createdAt || now,
       updatedAt: now
     };
-    if (rec.type === 'workout') { rec.amount = null; rec.unit = null; rec.meal = null; }
+    if (rec.type === 'workout') {
+      rec.amount = null;
+      rec.unit = null;
+      rec.meal = null;
+      /* ts הוא תחילת האימון, והסיום נגזר ממנו ומהמשך — שדה אחד ולא שניים
+         שעלולים לסתור זה את זה אחרי עריכה. */
+      rec.endsAt = rec.durationMin
+        ? new Date(new Date(rec.ts).getTime() + rec.durationMin * 60000).toISOString()
+        : null;
+    } else {
+      rec.endsAt = null;
+    }
     return rec;
   }
 
@@ -254,6 +265,7 @@
     ['חותמת זמן', function (r) { return r.ts; }],
     ['תאריך', function (r) { return displayDate(r.ts); }],
     ['שעה', function (r) { return localTime(r.ts); }],
+    ['שעת סיום', function (r) { return r.endsAt ? localTime(r.endsAt) : ''; }],
     ['יום בשבוע', function (r) { return weekday(r.ts); }],
     ['סוג', function (r) { return r.type === 'food' ? 'אוכל' : 'אימון'; }],
     ['שם', function (r) { return r.name; }],

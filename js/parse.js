@@ -580,6 +580,15 @@
 
     if (rec.type === 'workout') {
       fillWorkout(state, rec);
+      /* חותמת הזמן של אימון היא תחילתו. אם המשפט נאמר בסופו, מזיזים אותה
+         אחורה במשך האימון, וכך "סיימתי עכשיו אימון של שעתיים" נרשם כאימון
+         שהתחיל לפני שעתיים ולא כאימון שמתחיל עכשיו. */
+      if (rec.durationMin) {
+        var anchor = timeAnchor(raw, time.explicit);
+        if (anchor === 'end') {
+          rec.ts = new Date(time.ts.getTime() - rec.durationMin * 60000).toISOString();
+        }
+      }
       var leftover = cleanName(state.work);
       if (rec.activityName) {
         rec.name = rec.activityName;
@@ -595,6 +604,17 @@
 
     rec.missing = missingFields(rec);
     return rec;
+  }
+
+  var START_ALT = altOf(L.START_MARKERS);
+  var END_ALT = altOf(L.END_MARKERS);
+
+  /* באיזה קצה של האימון נאמר המשפט. שעה מפורשת ("רצתי בשמונה") היא כמעט תמיד
+     שעת ההתחלה; בלי שעה מפורשת, משפט בלשון עבר נאמר אחרי שהאימון נגמר. */
+  function timeAnchor(text, explicitTime) {
+    if (findAlias(text, START_ALT)) return 'start';
+    if (findAlias(text, END_ALT)) return 'end';
+    return explicitTime ? 'start' : 'end';
   }
 
   function missingFields(rec) {
