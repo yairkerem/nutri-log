@@ -63,7 +63,7 @@
 
   function setTodayLabel() {
     var now = new Date();
-    var text = now.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
+    var text = UI.heDate(now);
     el('todayLabel').textContent = text;
   }
 
@@ -192,10 +192,14 @@
           el('micStatus').classList.add('is-warn');
         }
       },
-      onEnd: function (finalText) {
+      onEnd: function (finalText, segments) {
         setMicState(false);
-        /* מה שהוכתב מנוקה מחזרות לפני שהוא נשמר, ומוצג נקי גם בתיבה. */
-        var spoken = Parser.collapseRepeats(finalText || '');
+        /* ההפסקות בדיבור הופכות לפסיקים היכן שהן באמת מפרידות בין פריטים,
+           ואז מה שהוכתב מנוקה מחזרות. התיבה מציגה את התוצאה לפני השמירה. */
+        var text = (segments && segments.length > 1)
+          ? Parser.joinSegments(segments)
+          : (finalText || '');
+        var spoken = Parser.collapseRepeats(text);
         var combined = [voiceBase, spoken].filter(Boolean).join(' ').trim();
         el('entryInput').value = combined;
         if (finalText) {
@@ -438,7 +442,7 @@
   function wireData() {
     on('btnData', 'click', function () {
       var records = Store.all();
-      var oldest = records.length ? Store.localDate(records[records.length - 1].ts) : null;
+      var oldest = records.length ? UI.heDateShort(records[records.length - 1].ts) : null;
       el('dataStats').textContent = records.length
         ? 'סך הכול ' + records.length + ' רשומות, החל מ־' + oldest + '.'
         : 'אין עדיין רשומות.';
@@ -534,10 +538,10 @@
     return { records: Store.inRange(start, new Date()), from: start, to: new Date(), invalid: false };
   }
 
-  /* בטקסט מוצג תאריך עברי קצר; בשם הקובץ נשאר ISO, כדי שקבצים יסתדרו לפי סדר. */
+  /* בטקסט מוצג תאריך עברי קצר ומבודד כיוונית; בשם הקובץ נשאר ISO, כדי
+     שקבצים יסתדרו לפי סדר. */
   function shortDate(date) {
-    var d = new Date(date);
-    return d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
+    return UI.heDateShort(date);
   }
 
   function rangeText(selection) {

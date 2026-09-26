@@ -102,7 +102,15 @@ var CASES = [
   { input: 'רצתי שעה וחצי',
     expect: [{ type: 'workout', name: 'ריצה', durationMin: 90 }] },
   { input: 'שתיתי 250 מ"ל קפה עם חלב',
-    expect: [{ type: 'food', name: 'קפה עם חלב', amount: 250, unit: 'ml' }] }
+    expect: [{ type: 'food', name: 'קפה עם חלב', amount: 250, unit: 'ml' }] },
+
+  /* מספר במילים שנושא אות שימוש — נפוץ מאוד בהכתבה */
+  { input: 'רצתי בשלושים דקות',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 30 }] },
+  { input: 'רצתי חמישה קילומטר בשלושים דקות',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 30, distanceKm: 5 }] },
+  { input: 'אכלתי כחמש פרוסות לחם',
+    expect: [{ type: 'food', name: 'לחם', amount: 5, unit: 'slice' }] }
 ];
 
 function actualValue(rec, key) {

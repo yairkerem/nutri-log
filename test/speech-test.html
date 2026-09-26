@@ -77,13 +77,22 @@ var CASES = [
   { name: 'חפיפה בין מקטעים',
     batches: [['אכלתי סלט עם', 'סלט עם עגבניות']], expect: SENTENCE },
 
-  { name: 'שתי הפסקות באמצע המשפט',
-    batches: [['אכלתי סלט'], ['עם עגבניות'], ['ורצתי 5 קילומטר']],
-    expect: 'אכלתי סלט עם עגבניות ורצתי 5 קילומטר' },
-
   { name: 'מצטבר בכל מקטע, עם הפסקה',
     batches: [['אכלתי', 'אכלתי סלט'], ['עם', 'עם עגבניות']],
-    expect: SENTENCE }
+    expect: SENTENCE },
+
+  /* הפסקה בדיבור הופכת לפסיק רק כשהיא באמת מפרידה בין פריטים */
+  { name: 'רשימה עם הפסקות — מתפצלת',
+    batches: [['אכלתי סלט'], ['חזה עוף'], ['אורז']],
+    expect: 'אכלתי סלט, חזה עוף, אורז' },
+
+  { name: 'משפט שנחתך באמצע — לא מתפצל',
+    batches: [['רצתי חמישה קילומטר'], ['בשלושים דקות']],
+    expect: 'רצתי חמישה קילומטר בשלושים דקות' },
+
+  { name: 'המשך שמתחיל ב"עם" — לא מתפצל',
+    batches: [['קפה'], ['עם חלב']],
+    expect: 'קפה עם חלב' }
 ];
 
 function runCase(testCase) {
@@ -91,8 +100,12 @@ function runCase(testCase) {
     window.FAKE_BATCHES = testCase.batches.map(function (b) { return b.slice(); });
     var ends = [];
     Speech.start({
-      onEnd: function (finalText) {
-        ends.push(Parser.collapseRepeats(finalText));
+      onEnd: function (finalText, segments) {
+        /* בדיוק מה שהאפליקציה עושה עם מה שהוכתב */
+        var text = (segments && segments.length > 1)
+          ? Parser.joinSegments(segments)
+          : finalText;
+        ends.push(Parser.collapseRepeats(text));
         /* ממתינים רגע, כדי לתפוס דיווח סיום נוסף אם הוא קיים */
         setTimeout(function () { resolve({ text: ends[0], ends: ends.length }); }, 40);
       },

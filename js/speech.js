@@ -21,7 +21,7 @@
 
   /* base — מה שנשמע במקטעים שכבר הסתיימו, heard — המקטע הנוכחי,
      wanted — האם המשתמש עדיין רוצה להקשיב. */
-  var session = { base: '', heard: '', wanted: false };
+  var session = { base: '', heard: '', wanted: false, segments: [] };
 
   var ERRORS = {
     'not-allowed': 'אין הרשאה למיקרופון. יש לאשר גישה בהגדרות הדפדפן ולנסות שוב.',
@@ -114,6 +114,8 @@
     rec.onend = function () {
       /* נשלח בסוף כל מקטע דיבור. כל עוד המשתמש לא עצר, מקפלים את מה שנשמע
          לתוך הבסיס וממשיכים להקשיב — בלי לדווח על סיום, וכך בלי לשמור רשומה. */
+      if (session.heard) session.segments.push(session.heard);
+
       if (session.wanted) {
         session.base = spokenSoFar();
         session.heard = '';
@@ -125,9 +127,11 @@
 
       listening = false;
       var finalText = spokenSoFar();
-      session.base = '';
-      session.heard = '';
-      if (handlers.onEnd) handlers.onEnd(finalText);
+      /* גבולות המקטעים הם המקומות שבהם המשתמש עצר לנשום, וזה בדיוק המקום שבו
+         אנשים מפרידים בין פריטים ברשימה. מי שקורא לנו מחליט מה לעשות בזה. */
+      var segments = session.segments.slice();
+      session = { base: '', heard: '', wanted: false, segments: [] };
+      if (handlers.onEnd) handlers.onEnd(finalText, segments);
     };
 
     return rec;
@@ -141,7 +145,7 @@
       return false;
     }
 
-    session = { base: '', heard: '', wanted: true };
+    session = { base: '', heard: '', wanted: true, segments: [] };
 
     try {
       if (!recognition) recognition = create();

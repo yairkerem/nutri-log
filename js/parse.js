@@ -42,7 +42,8 @@
   var FRACTION_ALT = Object.keys(L.FRACTION_CHARS).map(escapeRe).join('|');
 
   var DIGIT_NUM = NO_DIGIT_BEFORE + '\\d+(?:\\.\\d+)?(?:\\s*\\/\\s*\\d+)?';
-  var WORD_NUM = BL + 'ו?(?:' + NUMBER_WORD_ALT + ')' + BR;
+  /* מספר במילים נושא לעיתים אות שימוש: "בשלושים דקות", "כחמש דקות". */
+  var WORD_NUM = BL + '[ובכל]{0,2}(?:' + NUMBER_WORD_ALT + ')' + BR;
   var NUM = '(?:' + DIGIT_NUM + '|' + FRACTION_ALT + '|' + WORD_NUM + ')';
 
   var UNIT_ALT = altOf(aliasesOf(L.UNITS));
@@ -84,9 +85,10 @@
       return den ? parseFloat(parts[0]) / den : null;
     }
     if (/^\d+(?:\.\d+)?$/.test(s)) return parseFloat(s);
-    var word = s.replace(/^ו/, '');
-    if (L.NUMBER_WORDS[word] != null) return L.NUMBER_WORDS[word];
     if (L.NUMBER_WORDS[s] != null) return L.NUMBER_WORDS[s];
+    /* אף מספר במילים אינו פותח באותיות השימוש, ולכן אפשר להסיר אותן בבטחה. */
+    var word = s.replace(/^[ובכל]{1,2}/, '');
+    if (L.NUMBER_WORDS[word] != null) return L.NUMBER_WORDS[word];
     return null;
   }
 
@@ -499,6 +501,46 @@
     return hasEffort ? [] : ['effort'];
   }
 
+  /* חיבור מקטעי הכתבה למשפט אחד. גבול בין מקטעים הוא הפסקה בדיבור, ולרוב זה
+     בדיוק המקום שבו מפרידים בין פריטים ברשימה — אבל לא תמיד: "רצתי חמישה
+     קילומטר" / "בשלושים דקות" הוא משפט אחד שנחתך באמצע. לכן פסיק נכנס רק אם
+     שני הצדדים עומדים בפני עצמם כרשומה עם שם אמיתי. */
+  function joinSegments(segments) {
+    var joined = '';
+    (segments || []).forEach(function (segment) {
+      var part = normalize(segment);
+      if (!part) return;
+      if (!joined) { joined = part; return; }
+      joined += (isItemBoundary(joined, part) ? ', ' : ' ') + part;
+    });
+    return joined;
+  }
+
+  function isItemBoundary(left, right) {
+    /* מקטע שנפתח במילת חיבור הוא המשך, לא פריט חדש. */
+    if (/^(עם|ו|של|בלי|ב|ל)\s/.test(right)) return false;
+    var before = parse(left);
+    var after = parse(right);
+    if (!before.length || !after.length) return false;
+    return namedRecord(before[before.length - 1]) && namedRecord(after[0]);
+  }
+
+  /* מילות מידה: יחידות, יחידות זמן ומרחק ומספרים במילים. מקטע שכל כולו מילות
+     מידה — "בשלושים דקות" — הוא המשך של המשפט הקודם ולא פריט בפני עצמו. */
+  var MEASURE_WORDS = {};
+  [aliasesOf(L.UNITS), aliasesOf(L.TIME_UNITS), aliasesOf(L.DISTANCE_UNITS), Object.keys(L.NUMBER_WORDS)]
+    .forEach(function (list) {
+      list.forEach(function (word) { MEASURE_WORDS[word] = true; });
+    });
+
+  function namedRecord(rec) {
+    if (!rec || !rec.name) return false;
+    if (rec.name === 'אוכל' || rec.name === 'אימון') return false;
+    return rec.name.split(' ').some(function (word) {
+      return word && !MEASURE_WORDS[word] && !MEASURE_WORDS[stripPrefix(word)];
+    });
+  }
+
   /* רשת ביטחון להכתבה: מנוע שמוסר את אותו משפט שוב ושוב יוצר טקסט כפול, וכאן
      מכווצים חזרות רצופות של אותו רצף מילים. פועל על טקסט מוכתב בלבד. */
   function collapseRepeats(text) {
@@ -540,6 +582,7 @@
     splitSegments: splitSegments,
     normalize: normalize,
     collapseRepeats: collapseRepeats,
+    joinSegments: joinSegments,
     parseNumberToken: parseNumberToken,
     missingFields: missingFields,
     detectType: detectType

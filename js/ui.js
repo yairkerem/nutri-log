@@ -64,8 +64,35 @@
     return parts.join(' · ');
   }
 
-  var WEEKDAYS_LONG = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
-  var WEEKDAYS_SHORT = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
+  var WEEKDAYS_LONG = ['יום ראשון', 'יום שני', 'יום שלישי', 'יום רביעי', 'יום חמישי', 'יום שישי', 'שבת'];
+  var WEEKDAYS_SHORT = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+
+  /* בידוד כיווני. מקף או נקודתיים בין מספרים הם תווים ניטרליים, ובשורה עברית
+     הם מקבלים את כיוון הפסקה — כך ש-"16:30" נקרא הפוך. מה שנמצא בין שני
+     הסימנים האלה שומר על הסדר שלו עצמו. */
+  var LRI = '⁦';
+  var PDI = '⁩';
+
+  function ltr(text) { return text ? LRI + text + PDI : text; }
+
+  function pad2(n) { return n < 10 ? '0' + n : String(n); }
+
+  /* תאריך מספרי מבודד: 26.9.2026 */
+  function heDateShort(value) {
+    var d = new Date(value);
+    return ltr(d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear());
+  }
+
+  /* היום בשבוע הוא מה שאנשים באמת בודקים מול תאריך. */
+  function heDate(value) {
+    var d = new Date(value);
+    return WEEKDAYS_LONG[d.getDay()] + ', ' + heDateShort(d);
+  }
+
+  function heTime(value) {
+    var d = new Date(value);
+    return ltr(pad2(d.getHours()) + ':' + pad2(d.getMinutes()));
+  }
 
   function sameDay(a, b) {
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -75,13 +102,13 @@
     var today = new Date();
     var yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    var label = WEEKDAYS_LONG[date.getDay()] + ', ' + date.getDate() + '.' + (date.getMonth() + 1);
+    var label = heDate(date);
     if (sameDay(date, today)) return 'היום · ' + label;
     if (sameDay(date, yesterday)) return 'אתמול · ' + label;
-    return label + '.' + String(date.getFullYear()).slice(2);
+    return label;
   }
 
-  function timeText(ts) { return global.Store.localTime(ts); }
+  function timeText(ts) { return heTime(ts); }
 
   /* ─────────── תפריטי בחירה ─────────── */
 
@@ -536,6 +563,9 @@
     formatNum: formatNum,
     quantityText: quantityText,
     dayHeading: dayHeading,
+    heDate: heDate,
+    heDateShort: heDateShort,
+    heTime: heTime,
     renderStats: renderStats,
     renderWeek: renderWeek,
     renderLog: renderLog,
