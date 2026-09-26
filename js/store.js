@@ -260,7 +260,11 @@
     ['חותמת זמן', function (r) { return r.ts; }],
     ['תאריך', function (r) { return displayDate(r.ts); }],
     ['שעה', function (r) { return localTime(r.ts); }],
-    ['שעת סיום', function (r) { return r.endsAt ? localTime(r.endsAt) : ''; }],
+    /* מחושב, לא נקרא: רשומות ישנות נשמרו בלי שדה הסיום. */
+    ['שעת סיום', function (r) {
+      if (r.type !== 'workout' || !r.durationMin) return '';
+      return localTime(new Date(new Date(r.ts).getTime() + r.durationMin * 60000));
+    }],
     ['יום בשבוע', function (r) { return weekday(r.ts); }],
     ['סוג', function (r) { return r.type === 'food' ? 'אוכל' : 'אימון'; }],
     ['שם', function (r) { return r.name; }],

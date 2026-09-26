@@ -46,6 +46,13 @@
 
   function unitLabel(rec) { return global.Store.labels.unit(rec); }
 
+  /* סוף האימון מחושב מההתחלה ומהמשך ולא נקרא מהשדה השמור: רשומות שנשמרו לפני
+     שהשדה היה קיים לא מכילות אותו, ובלי החישוב הן היו מוצגות בלי שעת סיום. */
+  function endOf(rec) {
+    if (!rec || rec.type !== 'workout' || !rec.durationMin) return null;
+    return new Date(new Date(rec.ts).getTime() + rec.durationMin * 60000);
+  }
+
   function quantityText(rec) {
     var parts = [];
     if (rec.type === 'food') {
@@ -53,7 +60,8 @@
       if (rec.calories != null) parts.push(formatNum(rec.calories) + ' קלוריות');
     } else {
       /* אימון הוא פרק זמן: מוצג מתי התחיל ומתי נגמר. */
-      if (rec.endsAt) parts.push(heTime(rec.ts) + '–' + heTime(rec.endsAt));
+      var ends = endOf(rec);
+      if (ends) parts.push(heTime(rec.ts) + "–" + heTime(ends));
       if (rec.durationMin != null) parts.push(formatNum(rec.durationMin) + ' דקות');
       if (rec.steps != null) parts.push(rec.steps.toLocaleString('he-IL') + ' צעדים');
       var intensity = global.Store.labels.intensity(rec);
@@ -528,7 +536,8 @@
     el('editMeal').value = rec.meal || '';
     el('editCalories').value = rec.calories != null ? rec.calories : '';
     el('editDuration').value = rec.durationMin != null ? rec.durationMin : '';
-    el('editEnd').value = rec.endsAt ? timeInputValue(rec.endsAt) : '';
+    var recEnd = endOf(rec);
+    el("editEnd").value = recEnd ? timeInputValue(recEnd) : "";
     el('editIntensity').value = rec.intensity || '';
     el('editNote').value = rec.note || '';
     /* טקסט מקורי ארוך במיוחד מוצג מקוצר, כדי שלא ימתח את החלון. */
