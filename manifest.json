@@ -1,14 +1,14 @@
 {
-  "name": "יומן תזונה ואימונים",
-  "short_name": "יומן",
+  "name": "Nutri Log — יומן תזונה ואימונים",
+  "short_name": "Nutri Log",
   "lang": "he",
   "dir": "rtl",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f4f6f5",
-  "theme_color": "#0f766e",
+  "background_color": "#f1f6f8",
+  "theme_color": "#096781",
   "description": "תיעוד אוכל ואימונים בעברית, כולל הכתבה קולית, כמויות וחותמות זמן.",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

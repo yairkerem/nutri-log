@@ -1,35 +1,40 @@
+/* הצבעים נדגמו מהאייקון: כחול-תכלת עמוק (#096781) וירוק התפוח (#8BC55F). */
 :root {
-  --bg: #f4f6f5;
+  --bg: #f1f6f8;
   --card: #ffffff;
-  --text: #14211f;
-  --muted: #5d6b69;
-  --line: #dde4e2;
-  --accent: #0f766e;
-  --accent-soft: #d7efec;
-  --food: #0f766e;
-  --workout: #b45309;
+  --text: #0f242d;
+  --muted: #5a6f79;
+  --line: #d9e4ea;
+  --topbar: #096781;
+  --accent: #0a6a87;
+  --accent-bright: #0a6a87;
+  --accent-soft: #d8eaf2;
+  --food: #3f7f28;
+  --workout: #0a6a87;
   --danger: #b91c1c;
   --warn: #92400e;
-  --warn-bg: #fef3c7;
+  --warn-bg: #fdf0cd;
   --radius: 14px;
-  --shadow: 0 1px 2px rgba(15, 35, 32, .06), 0 8px 24px rgba(15, 35, 32, .05);
+  --shadow: 0 1px 2px rgba(6, 40, 52, .07), 0 8px 24px rgba(6, 40, 52, .06);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #101614;
-    --card: #18211f;
-    --text: #e8efed;
-    --muted: #9bacaa;
-    --line: #2a3634;
-    --accent: #2dd4bf;
-    --accent-soft: #10312e;
-    --food: #2dd4bf;
-    --workout: #fbbf24;
+    --bg: #0a151a;
+    --card: #122229;
+    --text: #e5eef2;
+    --muted: #96aeb8;
+    --line: #22363f;
+    --topbar: #07364a;
+    --accent: #0f7fa0;
+    --accent-bright: #5cc4e0;
+    --accent-soft: #0e2c39;
+    --food: #83c95c;
+    --workout: #5cc4e0;
     --danger: #f87171;
     --warn: #fcd34d;
     --warn-bg: #3a2f10;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px rgba(0, 0, 0, .35);
+    --shadow: 0 1px 2px rgba(0, 0, 0, .45), 0 10px 28px rgba(0, 0, 0, .38);
   }
 }
 
@@ -65,7 +70,7 @@ body {
   align-items: center;
   gap: 12px;
   padding: 18px 16px 14px;
-  background: var(--accent);
+  background: var(--topbar);
   color: #fff;
 }
 
@@ -160,7 +165,7 @@ textarea#entryInput {
   line-height: 1.45;
 }
 
-textarea#entryInput:focus, input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+textarea#entryInput:focus, input:focus, select:focus { outline: 2px solid var(--accent-bright); outline-offset: 1px; }
 
 .capture-actions {
   display: flex;
@@ -270,7 +275,7 @@ textarea#entryInput:focus, input:focus, select:focus { outline: 2px solid var(--
   white-space: nowrap;
 }
 
-.chip:hover { border-color: var(--accent); }
+.chip:hover { border-color: var(--accent-bright); }
 .chip-mini { padding: 3px 9px; font-size: .78rem; }
 
 .recent-chips { display: inline-flex; flex-wrap: wrap; gap: 6px; }

@@ -2,7 +2,9 @@
 (function (global) {
   'use strict';
 
-  var KEY = 'dietdiary.records.v1';
+  var KEY = 'nutrilog.records.v1';
+  /* המפתח מלפני שינוי השם ל-Nutri Log. הרשומות מועתקות ממנו פעם אחת. */
+  var LEGACY_KEY = 'dietdiary.records.v1';
   var records = [];
   var listeners = [];
 
@@ -12,14 +14,22 @@
   }
 
   function load() {
+    var migrated = false;
     try {
       var raw = global.localStorage.getItem(KEY);
+      if (raw === null) {
+        raw = global.localStorage.getItem(LEGACY_KEY);
+        migrated = raw !== null;
+      }
       records = raw ? JSON.parse(raw) : [];
       if (!Array.isArray(records)) records = [];
     } catch (err) {
       records = [];
+      migrated = false;
     }
     sort();
+    /* העותק הישן נשאר במקומו כרשת ביטחון. */
+    if (migrated) persist();
     return records;
   }
 
@@ -312,7 +322,7 @@
 
   function toJson() {
     return JSON.stringify({
-      app: 'dietdiary',
+      app: 'nutrilog',
       version: 1,
       exportedAt: new Date().toISOString(),
       records: all().slice().reverse()

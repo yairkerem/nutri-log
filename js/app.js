@@ -332,7 +332,7 @@
     });
 
     el('btnExportJson').addEventListener('click', function () {
-      download(Store.toJson(), 'diet-diary-backup-' + stamp() + '.json', 'application/json');
+      download(Store.toJson(), 'nutri-log-backup-' + stamp() + '.json', 'application/json');
     });
 
     el('importFile').addEventListener('change', function (event) {
@@ -461,8 +461,8 @@
     var file = new File([csv], filename, { type: 'text/csv' });
     global.navigator.share({
       files: [file],
-      title: 'יומן תזונה ואימונים',
-      text: 'רשומות יומן תזונה ואימונים, ' + rangeText(selection) + '.'
+      title: 'Nutri Log',
+      text: 'רשומות מ-Nutri Log, ' + rangeText(selection) + '.'
     }).then(function () {
       UI.toast('הקובץ שותף.');
     }).catch(function (err) {
@@ -477,9 +477,9 @@
     if (selection.from || selection.to) {
       var from = selection.from ? Store.localDate(selection.from) : 'start';
       var to = Store.localDate(selection.to || new Date());
-      return 'diet-diary-' + from + '_' + to + '.' + extension;
+      return 'nutri-log-' + from + '_' + to + '.' + extension;
     }
-    return 'diet-diary-all-' + stamp() + '.' + extension;
+    return 'nutri-log-all-' + stamp() + '.' + extension;
   }
 
   function stamp() {
