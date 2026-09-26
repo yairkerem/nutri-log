@@ -436,7 +436,10 @@
     el('editReps').value = rec.reps != null ? rec.reps : '';
     el('editIntensity').value = rec.intensity || '';
     el('editNote').value = rec.note || '';
-    el('editRaw').textContent = rec.raw ? 'נרשם מהטקסט: "' + rec.raw + '"' : '';
+    /* טקסט מקורי ארוך במיוחד מוצג מקוצר, כדי שלא ימתח את החלון. */
+    var raw = rec.raw || '';
+    if (raw.length > 160) raw = raw.slice(0, 160) + '…';
+    el('editRaw').textContent = raw ? 'נרשם מהטקסט: "' + raw + '"' : '';
     el('editFoodFields').hidden = rec.type !== 'food';
     el('editWorkoutFields').hidden = rec.type !== 'workout';
     el('editDialog').dataset.type = rec.type;

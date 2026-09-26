@@ -45,8 +45,12 @@
 
 html { -webkit-text-size-adjust: 100%; }
 
+html { overflow-x: hidden; }
+
 body {
   margin: 0;
+  /* שום תוכן ארוך לא אמור למשוך את הדף לרוחב ולהוציא כפתורים מהמסך. */
+  overflow-x: hidden;
   padding: 0 0 env(safe-area-inset-bottom);
   background: var(--bg);
   color: var(--text);
@@ -328,7 +332,9 @@ textarea#entryInput:focus, input:focus, select:focus { outline: 2px solid var(--
   font: inherit;
   font-size: .8rem;
   cursor: pointer;
-  max-width: 100%;
+  /* תקרה קבועה, לא 100%: ההורה הוא inline-flex שמתרחב לפי התוכן, ולכן
+     אחוזים לא היו מגבילים שם דבר ושם ארוך מתח את הדף כולו. */
+  max-width: 260px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -337,7 +343,25 @@ textarea#entryInput:focus, input:focus, select:focus { outline: 2px solid var(--
 .chip:hover { border-color: var(--accent-bright); }
 .chip-mini { padding: 3px 9px; font-size: .78rem; }
 
-.recent-chips { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.recent-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* טקסט ארוך במיוחד — למשל רשומה שנוצרה מהכפלה של ההכתבה — חייב להישבר. */
+.entry-name,
+.raw-line,
+.dialog-note,
+.update-bar-text,
+.draft-ask,
+.day-head,
+.empty {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
 
 /* ─────────── כרטיסי השלמה ─────────── */
 
@@ -677,16 +701,24 @@ input.num.needs {
   padding: 16px;
   padding-top: 8px;
   overflow-y: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   z-index: 60;
+  /* מקום לכפתור הסגירה המקובע */
+  padding-top: 62px;
 }
 
-/* כפתור סגירה שנוסף רק במסלול הזה, בראש התוכן כדי שתמיד יהיה בהישג יד. */
+/* כפתור סגירה שנוסף רק במסלול הזה. הוא מקובע לפינת המסך, כדי ששום תוכן
+   רחב לא יוכל לדחוף אותו אל מחוץ לתצוגה. */
 .sheet-close {
   display: none;
-  margin: 0 0 8px auto;
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 70;
   width: 44px;
   height: 44px;
+  box-shadow: var(--shadow);
   border: 1px solid var(--line);
   border-radius: 50%;
   background: var(--bg);
