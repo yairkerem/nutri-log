@@ -53,11 +53,11 @@ var CASES = [
   { input: 'קפה שחור',
     expect: [{ type: 'food', amount: null, name: 'קפה שחור', missing: 'amount' }] },
   { input: 'רצתי 5 ק"מ ב-32 דקות',
-    expect: [{ type: 'workout', name: 'ריצה', distanceKm: 5, durationMin: 32, missing: '' }] },
+    expect: [{ type: "workout", name: "ריצה", durationMin: 32, note: "5 ק\"מ", missing: "" }] },
   { input: 'חדר כושר שעה וחצי, 3 סטים של 12 חזרות',
     expect: [
       { type: 'workout', name: 'חדר כושר', durationMin: 90 },
-      { type: 'workout', sets: 3, reps: 12, missing: '' }
+      { type: "workout", name: "אימון", missing: "effort" }
     ] },
   { input: 'התאמנתי',
     expect: [{ type: 'workout', name: 'אימון', missing: 'effort' }] },
@@ -80,14 +80,14 @@ var CASES = [
   { input: 'אכלתי סלט, ורצתי 3 ק"מ',
     expect: [
       { type: 'food', name: 'סלט', missing: 'amount' },
-      { type: 'workout', name: 'ריצה', distanceKm: 3 }
+      { type: "workout", name: "ריצה", missing: "effort" }
     ] },
   { input: 'אכלתי ב-8 בבוקר חביתה',
     expect: [{ type: 'food', name: 'חביתה', hour: 8, missing: 'amount' }] },
   { input: 'יוגה 45 דקות',
     expect: [{ type: 'workout', name: 'יוגה', durationMin: 45 }] },
   { input: 'שכיבות סמיכה 3 על 15',
-    expect: [{ type: 'workout', name: 'שכיבות סמיכה', sets: 3, reps: 15 }] },
+    expect: [{ type: "workout", name: "שכיבות סמיכה", missing: "effort" }] },
   { input: 'חצי אבטיח',
     expect: [{ type: 'food', amount: 0.5, unit: 'unit', name: 'אבטיח' }] },
   { input: 'שחיתי 40 דקות בבריכה',
@@ -122,7 +122,7 @@ var CASES = [
   { input: 'רצתי בשלושים דקות',
     expect: [{ type: 'workout', name: 'ריצה', durationMin: 30 }] },
   { input: 'רצתי חמישה קילומטר בשלושים דקות',
-    expect: [{ type: 'workout', name: 'ריצה', durationMin: 30, distanceKm: 5 }] },
+    expect: [{ type: "workout", name: "ריצה", durationMin: 30 }] },
   { input: 'אכלתי כחמש פרוסות לחם',
     expect: [{ type: 'food', name: 'לחם', amount: 5, unit: 'slice' }] },
 
@@ -154,7 +154,7 @@ var CASES = [
     expect: [{ type: 'workout', name: 'הליכה', durationMin: 60 }] },
   /* מספר מורכב: ו' שבתוכו אינה מפצלת, והערך מחובר */
   { input: 'רצתי חמישה קילומטר בשלושים ושתיים דקות',
-    expect: [{ type: 'workout', name: 'ריצה', durationMin: 32, distanceKm: 5 }] },
+    expect: [{ type: "workout", name: "ריצה", durationMin: 32 }] },
   { input: 'יוגה ארבעים וחמש דקות',
     expect: [{ type: 'workout', name: 'יוגה', durationMin: 45 }] },
   { input: 'מאה ועשרים גרם אורז',
@@ -167,7 +167,7 @@ var CASES = [
   { input: 'אימון בטן עשרים דקות',
     expect: [{ type: 'workout', name: 'כפיפות בטן', durationMin: 20, note: '' }] },
   { input: 'רכבתי על אופניים עשרים קילומטר',
-    expect: [{ type: 'workout', name: 'אופניים', distanceKm: 20, note: '' }] },
+    expect: [{ type: "workout", name: "אופניים", missing: "effort" }] },
 
   /* לאימון יש התחלה וסוף, והניסוח קובע באיזה קצה נאמר המשפט.
      שעת העוגן של הבדיקות היא 14:30. */
@@ -204,7 +204,7 @@ var CASES = [
     expect: [{ type: 'workout', name: 'ריצה', durationMin: 160 }] },
   /* מספר חשוף אחרי יחידת זמן הוא דקות — אלא אם הוא מרחק */
   { input: 'רצתי שעה 5 קילומטר',
-    expect: [{ type: 'workout', name: 'ריצה', durationMin: 60, distanceKm: 5 }] }
+    expect: [{ type: "workout", name: "ריצה", durationMin: 60 }] }
 ];
 
 function actualValue(rec, key) {
@@ -254,8 +254,7 @@ CASES.forEach(function (testCase) {
   var summary = records.map(function (rec) {
     var date = new Date(rec.ts);
     return rec.type + ' | ' + rec.name + ' | amount=' + rec.amount + ' ' + (rec.unit || '') +
-      ' | min=' + rec.durationMin + ' km=' + rec.distanceKm + ' steps=' + rec.steps +
-      ' sets=' + rec.sets + ' reps=' + rec.reps +
+      ' | min=' + rec.durationMin + ' steps=' + rec.steps +
       ' | meal=' + rec.meal + ' | ' + date.getDate() + '.' + (date.getMonth() + 1) + ' ' +
       date.getHours() + ':' + ('0' + date.getMinutes()).slice(-2) +
       ' | missing=' + rec.missing.join(',') + ' | note=' + rec.note;

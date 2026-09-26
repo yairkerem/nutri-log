@@ -249,7 +249,7 @@
     if (patch.type) {
       /* מעבר בין אוכל לאימון: מנקים שדות שלא רלוונטיים. */
       if (patch.type === 'workout') { draft.amount = null; draft.unit = null; draft.meal = null; }
-      else { draft.durationMin = null; draft.distanceKm = null; draft.steps = null; draft.sets = null; draft.reps = null; draft.intensity = null; }
+      else { draft.durationMin = null; draft.steps = null; draft.intensity = null; }
     }
     if (draft.type === 'food' && draft.amount != null && !draft.unit) draft.unit = 'unit';
     draft.missing = Parser.missingFields(draft);
@@ -399,10 +399,7 @@
         }
       } else {
         out.durationMin = part.durationMin;
-        out.distanceKm = part.distanceKm;
         out.steps = part.steps;
-        out.sets = part.sets;
-        out.reps = part.reps;
         out.intensity = part.intensity;
       }
       return out;

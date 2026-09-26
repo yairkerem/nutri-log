@@ -55,11 +55,7 @@
       /* אימון הוא פרק זמן: מוצג מתי התחיל ומתי נגמר. */
       if (rec.endsAt) parts.push(heTime(rec.ts) + '–' + heTime(rec.endsAt));
       if (rec.durationMin != null) parts.push(formatNum(rec.durationMin) + ' דקות');
-      if (rec.distanceKm != null) parts.push(formatNum(rec.distanceKm) + ' ק"מ');
       if (rec.steps != null) parts.push(rec.steps.toLocaleString('he-IL') + ' צעדים');
-      if (rec.sets != null && rec.reps != null) parts.push(rec.sets + '×' + rec.reps);
-      else if (rec.reps != null) parts.push(rec.reps + ' חזרות');
-      else if (rec.sets != null) parts.push(rec.sets + ' סטים');
       var intensity = global.Store.labels.intensity(rec);
       if (intensity) parts.push('עצימות ' + intensity);
     }
@@ -152,7 +148,7 @@
     el('statFood').textContent = stats.food;
     el('statWorkout').textContent = stats.workout;
     el('statMinutes').textContent = stats.minutes;
-    el('statDistance').textContent = formatNum(stats.distance);
+    el('statSteps').textContent = stats.steps ? stats.steps.toLocaleString('he-IL') : '0';
   }
 
   function renderWeek(days) {
@@ -246,8 +242,7 @@
     drafts.forEach(function (draft) {
       var needsAmount = draft.type === 'food' && draft.amount == null;
       var needsEffort = draft.type === 'workout' &&
-        draft.durationMin == null && draft.distanceKm == null &&
-        draft.steps == null && draft.reps == null;
+        draft.durationMin == null && draft.steps == null;
 
       var card = h('div', { class: 'draft' + (needsAmount || needsEffort ? ' is-missing' : ''), dataset: { id: draft.key } });
 
@@ -310,15 +305,6 @@
         fields.appendChild(numField('דקות', draft.durationMin, needsEffort, function (value) {
           actions.onChange(draft.key, { durationMin: value }, true);
         }, function (input) { if (needsEffort && !firstMissing) firstMissing = input; }));
-        fields.appendChild(numField('ק"מ', draft.distanceKm, false, function (value) {
-          actions.onChange(draft.key, { distanceKm: value }, true);
-        }));
-        fields.appendChild(numField('סטים', draft.sets, false, function (value) {
-          actions.onChange(draft.key, { sets: value }, true);
-        }));
-        fields.appendChild(numField('חזרות', draft.reps, false, function (value) {
-          actions.onChange(draft.key, { reps: value }, true);
-        }));
       }
 
       card.appendChild(fields);
@@ -491,9 +477,6 @@
     el('editMeal').value = rec.meal || '';
     el('editCalories').value = rec.calories != null ? rec.calories : '';
     el('editDuration').value = rec.durationMin != null ? rec.durationMin : '';
-    el('editDistance').value = rec.distanceKm != null ? rec.distanceKm : '';
-    el('editSets').value = rec.sets != null ? rec.sets : '';
-    el('editReps').value = rec.reps != null ? rec.reps : '';
     el('editIntensity').value = rec.intensity || '';
     el('editNote').value = rec.note || '';
     /* טקסט מקורי ארוך במיוחד מוצג מקוצר, כדי שלא ימתח את החלון. */
@@ -530,9 +513,6 @@
       patch.calories = numOrNull(el('editCalories').value);
     } else {
       patch.durationMin = numOrNull(el('editDuration').value);
-      patch.distanceKm = numOrNull(el('editDistance').value);
-      patch.sets = numOrNull(el('editSets').value);
-      patch.reps = numOrNull(el('editReps').value);
       patch.intensity = el('editIntensity').value || null;
     }
     return patch;

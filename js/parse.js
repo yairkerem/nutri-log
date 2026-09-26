@@ -425,40 +425,13 @@
       });
     }
 
-    consume(state, '(' + NUM + ')\\s*' + token(DIST_ALT), function (m) {
-      var n = parseNumberToken(m[1]);
-      var unit = L.distanceUnitIndex[stripPrefix(m[2])] || L.distanceUnitIndex[m[2]];
-      if (n == null || !unit) return false;
-      rec.distanceKm = round2(n * unit.km);
-    });
-
+    /* מרחק, סטים וחזרות אינם נשמרים יותר כשדות. מה שנאמר עליהם נשאר בטקסט
+       ונכנס להערה, כדי שהמידע לא ייעלם. */
     consume(state, '(' + NUM + ')\\s*' + BL + PREFIX + '(?:צעדים|צעד)' + BR, function (m) {
       var n = parseNumberToken(m[1]);
       if (n == null) return false;
       rec.steps = Math.round(n);
     });
-
-    consume(state, '(' + NUM + ')\\s*' + BL + PREFIX + '(?:סטים|סט)' + BR, function (m) {
-      var n = parseNumberToken(m[1]);
-      if (n == null) return false;
-      rec.sets = Math.round(n);
-    });
-
-    consume(state, '(' + NUM + ')\\s*' + BL + PREFIX + '(?:חזרות|חזרה|פעמים)' + BR, function (m) {
-      var n = parseNumberToken(m[1]);
-      if (n == null) return false;
-      rec.reps = Math.round(n);
-    });
-
-    if (rec.sets == null && rec.reps == null) {
-      consume(state, '(' + NUM + ')\\s*(?:על|[xX*])\\s*(' + NUM + ')', function (m) {
-        var a = parseNumberToken(m[1]);
-        var b = parseNumberToken(m[2]);
-        if (a == null || b == null) return false;
-        rec.sets = Math.round(a);
-        rec.reps = Math.round(b);
-      });
-    }
 
     consume(state, token(INTENSITY_ALT), function (m) {
       var it = L.intensityIndex[stripPrefix(m[1])] || L.intensityIndex[m[1]];
@@ -504,6 +477,18 @@
       if (DROP_WORDS[w]) return false;
       if (/^\d+(?:\.\d+)?$/.test(w)) return false;
       return true;
+    });
+    while (kept.length && /^(עם|ו|של|את|ב|ל|כ)$/.test(kept[0])) kept.shift();
+    while (kept.length && /^(עם|ו|של|את|ב|ל|כ|ועוד)$/.test(kept[kept.length - 1])) kept.pop();
+    return kept.join(' ').trim();
+  }
+
+  /* כמו cleanName, אבל שומר מספרים: זה טקסט שנשמר כהערה ולא שם של רשומה. */
+  function cleanNote(text) {
+    var kept = normalize(text).split(' ').filter(Boolean).map(function (word) {
+      return word.replace(/^[-.,;:!?()"']+|[-.,;:!?()"']+$/g, '');
+    }).filter(function (word) {
+      return word && !DROP_WORDS[word];
     });
     while (kept.length && /^(עם|ו|של|את|ב|ל|כ)$/.test(kept[0])) kept.shift();
     while (kept.length && /^(עם|ו|של|את|ב|ל|כ|ועוד)$/.test(kept[kept.length - 1])) kept.pop();
@@ -651,10 +636,7 @@
       meal: null,
       calories: null,
       durationMin: null,
-      distanceKm: null,
       steps: null,
-      sets: null,
-      reps: null,
       intensity: null,
       note: '',
       raw: raw,
@@ -673,12 +655,22 @@
           rec.ts = new Date(time.ts.getTime() - rec.durationMin * 60000).toISOString();
         }
       }
-      var leftover = cleanName(state.work);
+      /* בהערה נשמרים גם המספרים, כי מה שאינו שדה — מרחק, סטים, חזרות — נשאר
+         כטקסט, ו"5 ק"מ" בלי ה-5 הוא חסר ערך. */
+      var leftover = cleanNote(state.work);
       if (rec.activityName) {
         rec.name = rec.activityName;
         rec.note = leftover;
       } else {
-        rec.name = leftover || 'אימון';
+        var words = leftover.split(' ').filter(Boolean);
+        var named = words.filter(isNameWord);
+        if (named.length) {
+          rec.name = named.join(' ');
+          rec.note = words.filter(function (word) { return !isNameWord(word); }).join(' ');
+        } else {
+          rec.name = 'אימון';
+          rec.note = leftover;
+        }
       }
       delete rec.activityName;
     } else {
@@ -705,8 +697,7 @@
     if (rec.type === 'food') {
       return rec.amount == null ? ['amount'] : [];
     }
-    var hasEffort = rec.durationMin != null || rec.distanceKm != null ||
-      rec.steps != null || rec.reps != null;
+    var hasEffort = rec.durationMin != null || rec.steps != null;
     return hasEffort ? [] : ['effort'];
   }
 
