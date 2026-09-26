@@ -324,6 +324,16 @@
     return round1(base + extra * unit.minutes);
   }
 
+  /* "שעה ארבעים דקות" — מילת הדקות שבסוף נבלעת בהתאמה ולא נשארת כהערה. */
+  var MINUTES_SUFFIX = '(?:\\s*' + PREFIX + '(?:דקות|דקה|דק)' + BR + ')?';
+
+  /* "רצתי שעה 5 קילומטר" — שם המספר הוא מרחק, לא דקות. */
+  var DISTANCE_AHEAD = new RegExp('^\\s*' + PREFIX + '(?:' + DIST_ALT + ')' + BR);
+
+  function followedByDistance(state, match) {
+    return DISTANCE_AHEAD.test(state.work.slice(match.index + match[0].length));
+  }
+
   function timeUnitOf(word) {
     return L.timeUnitIndex[stripPrefix(word)] || L.timeUnitIndex[word] || null;
   }
@@ -366,10 +376,33 @@
 
     /* "שעה ורבע", "שעה ועשרים" */
     if (rec.durationMin == null) {
-      consume(state, token(TIME_ALT) + '\\s*(' + VAV_NUM + ')', function (m) {
+      consume(state, token(TIME_ALT) + '\\s*(' + VAV_NUM + ')' + MINUTES_SUFFIX, function (m) {
         var unit = timeUnitOf(m[1]);
         var extra = parseNumberToken(m[2]);
         if (!unit || extra == null) return false;
+        rec.durationMin = durationFrom(1, unit, extra);
+      });
+    }
+
+    /* "שעה ארבעים", "שעה ארבעים דקות", "שתי שעות ארבעים" — אותו דבר בלי ו'.
+       מספר חשוף אחרי יחידת זמן הוא דקות, אלא אם הוא באמת מרחק. */
+    if (rec.durationMin == null) {
+      consume(state, '(' + NUM + ')\\s*' + token(TIME_ALT) + '\\s*(' + NUM + ')' + MINUTES_SUFFIX, function (m) {
+        var count = parseNumberToken(m[1]);
+        var unit = timeUnitOf(m[2]);
+        var extra = parseNumberToken(m[3]);
+        if (count == null || !unit || extra == null) return false;
+        if (followedByDistance(state, m)) return false;
+        rec.durationMin = durationFrom(count, unit, extra);
+      });
+    }
+
+    if (rec.durationMin == null) {
+      consume(state, token(TIME_ALT) + '\\s*(' + NUM + ')' + MINUTES_SUFFIX, function (m) {
+        var unit = timeUnitOf(m[1]);
+        var extra = parseNumberToken(m[2]);
+        if (!unit || extra == null) return false;
+        if (followedByDistance(state, m)) return false;
         rec.durationMin = durationFrom(1, unit, extra);
       });
     }

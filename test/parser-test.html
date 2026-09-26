@@ -193,7 +193,18 @@ var CASES = [
   { input: 'אימון של שלושת רבעי שעה',
     expect: [{ type: 'workout', name: 'אימון', durationMin: 45 }] },
   { input: 'רצתי שתי שעות ועשרים',
-    expect: [{ type: 'workout', name: 'ריצה', durationMin: 140 }] }
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 140 }] },
+
+  /* אותו משך בלי ו' החיבור, כפי שאומרים שעה וארבעים */
+  { input: 'אימון של שעה ארבעים',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 100 }] },
+  { input: 'התאמנתי שעה ארבעים דקות',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 100, note: '' }] },
+  { input: 'רצתי שתי שעות ארבעים',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 160 }] },
+  /* מספר חשוף אחרי יחידת זמן הוא דקות — אלא אם הוא מרחק */
+  { input: 'רצתי שעה 5 קילומטר',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 60, distanceKm: 5 }] }
 ];
 
 function actualValue(rec, key) {
