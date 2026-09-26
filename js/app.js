@@ -265,7 +265,7 @@
     }
     draft.missing = Parser.missingFields(draft);
     if (draft.missing.length && !allowMissing) {
-      UI.toast(draft.type === 'food' ? 'נא להשלים כמות, או לשמור ללא כמות.' : 'נא להשלים דקות, מרחק או חזרות.');
+      UI.toast(draft.type === 'food' ? 'נא להשלים כמות, או לשמור ללא כמות.' : 'נא להשלים דקות או צעדים.');
       return;
     }
     Store.add(stripDraftFields(draft));

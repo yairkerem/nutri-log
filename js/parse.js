@@ -148,28 +148,80 @@
   /* ─────────── זמן ─────────── */
 
   /* שעה שנאמרה בלי לציין חלק ביום. "ב-5" הוא חמש אחר הצהריים, כי זה מה
-     שמתכוונים כשלא אומרים; 8 עד 12 נקראות כפי שנאמרו. אמירה מפורשת של חלק
-     ביום — בבוקר, לפנות בוקר, AM — או שעה שנכתבה כ-05:00 מבטלת את הכלל לכל
-     ההודעה, לשני הכיוונים. */
-  var DAY_PART_STATED = new RegExp(
-    '(?:' + PART_OF_DAY_ALT + ')|לפנות\\s*בוקר|אחר\\s*הצהריים|אחה"צ|\\b[ap]\\.?m\\.?\\b|(?<![0-9])0\\d[:.]\\d{2}',
-    'i'
-  );
+     שמתכוונים כשלא אומרים; 8 עד 12 נקראות כפי שנאמרו. חלק יום שנאמר במפורש
+     גובר על הכלל — אבל אז הוא זה שקובע: "בשבע בערב" היא 19:00 ולא 07:00.
+     שעה שנכתבה כ-05:00 נקראת כפי שנכתבה, ומבטלת את הכלל לכל ההודעה. */
+  var LITERAL_HOUR = '(?<![0-9])0\\d[:.]\\d{2}';
+  var HALF_AM = 'לפנות\\s*בוקר|בוקר|\\b[aA]\\.?[mM]\\.?\\b';
+  var HALF_PM = 'אחר\\s*הצהריים|אחה"צ|צהריים|צהרים|ערב|\\b[pP]\\.?[mM]\\.?\\b';
+  var HALF_NIGHT = 'לילה';
 
-  function statesDayPart(text) {
+  function testRe(source, text, fallback) {
     try {
-      return DAY_PART_STATED.test(text || '');
+      return new RegExp(source).test(text || '');
     } catch (err) {
-      return /בוקר|צהר|ערב|לילה/.test(text || '');
+      return fallback;
     }
   }
 
-  function afternoonHour(hour, dayPartStated) {
-    if (dayPartStated) return hour;
+  /* מה שידוע על השעון מתוך ההודעה כולה, לפני שמפרקים מקטע בודד: חלק היום
+     נאמר פעם אחת ותקף לכל מה שנאמר איתו. */
+  function clockContext(text) {
+    var raw = text || '';
+    return {
+      literal: testRe(LITERAL_HOUR, raw, false),
+      half: testRe(HALF_AM, raw, /בוקר/.test(raw)) ? 'am'
+        : testRe(HALF_NIGHT, raw, /לילה/.test(raw)) ? 'night'
+          : testRe(HALF_PM, raw, /צהר|ערב/.test(raw)) ? 'pm'
+            : null
+    };
+  }
+
+  /* תרגום שעה בת 1–12 לחלק היום שנאמר. שעה שכבר נאמרה בשעון 24 אינה זזה. */
+  function applyHalf(hour, half) {
+    if (half === 'am') return hour === 12 ? 0 : hour;
+    if (half === 'night') {
+      if (hour === 12) return 0;
+      return hour >= 7 && hour < 12 ? hour + 12 : hour;
+    }
+    return hour < 12 ? hour + 12 : hour;
+  }
+
+  function clockHour(hour, clock) {
+    if (!clock || clock.literal) return hour;
+    if (clock.half) return applyHalf(hour, clock.half);
     return (hour >= 1 && hour <= 7) ? hour + 12 : hour;
   }
 
-  function extractTime(state, now, type, dayPartStated) {
+  /* שעה על השעון: בספרות ("8", "8:15") או במילים ("שמונה"), ואחריה אפשר
+     "וחצי" או "ורבע". ההכתבה מחזירה מילים לא פחות מספרות, ולכן שעה שנקראה
+     רק בספרות השאירה אימון שלם בלי משך — וממילא גם בלי שעת סיום.
+
+     מילים מתקבלות רק היכן שהניסוח מבהיר שמדובר בשעון, כי שליפת הזמן קודמת
+     לשליפת הכמות: "בשלוש בננות" היא כמות, ושעה שתבלע אותה תשאיר אותה ריקה.
+     קבוצת המילים נשארת בתבנית הספרות כקבוצה שלעולם אינה מתאימה, כדי ששתי
+     התבניות יימסרו לאותו קורא באותו סדר קבוצות. */
+  var NEVER = '([^\\s\\S])';
+
+  function clockPointPattern(allowWords) {
+    return '(?:(\\d{1,2})(?:[:.](\\d{2}))?(?![0-9])|' +
+      (allowWords ? '(' + NUMBER_WORD_ALT + ')' + BR : NEVER) + ')' +
+      '(?:\\s*ו-?(חצי|רבע)' + BR + ')?';
+  }
+
+  var CLOCK_POINT = clockPointPattern(true);
+  var CLOCK_DIGITS = clockPointPattern(false);
+
+  function clockPoint(digits, minutes, word, fraction, clock) {
+    var hour = digits != null ? parseInt(digits, 10) : parseNumberToken(word);
+    if (hour == null || hour < 0 || hour > 23) return null;
+    var minute = minutes ? parseInt(minutes, 10) : 0;
+    if (fraction) minute += fraction === 'חצי' ? 30 : 15;
+    if (minute > 59) return null;
+    return { hour: clockHour(hour, clock), minute: minute };
+  }
+
+  function extractTime(state, now, type, clock) {
     var shift = 0;
     var hour = null;
     var minute = 0;
@@ -207,56 +259,50 @@
        ההתחלה ולא גולש לבוקר שאחריו. רק באימון, כי באוכל "5 עד 8 שקדים" הוא
        כמות ולא שעות. */
     if (type === 'workout') {
-      consume(state,
-        '(?:מ|מהשעה|בין)?-?\\s*(\\d{1,2})(?:[:.](\\d{2}))?(?![0-9])\\s*(?:עד|ל|-)-?\\s*(\\d{1,2})(?:[:.](\\d{2}))?(?![0-9])' + BR,
+      consume(state, BL + '(?:מ|מהשעה|בין)?-?\\s*' + CLOCK_POINT +
+        '\\s*(?:עד|ל|-)-?\\s*' + CLOCK_POINT + BR,
         function (m) {
-          var from = afternoonHour(parseInt(m[1], 10), dayPartStated);
-          var fromMin = m[2] ? parseInt(m[2], 10) : 0;
-          var to = parseInt(m[3], 10);
-          var toMin = m[4] ? parseInt(m[4], 10) : 0;
-          if (from > 23 || to > 23 || fromMin > 59 || toMin > 59) return false;
+          var a = clockPoint(m[1], m[2], m[3], m[4], clock);
+          var b = clockPoint(m[5], m[6], m[7], m[8], clock);
+          if (!a || !b) return false;
 
-          to = afternoonHour(to, dayPartStated);
-          var minutes = (to * 60 + toMin) - (from * 60 + fromMin);
+          var minutes = (b.hour * 60 + b.minute) - (a.hour * 60 + a.minute);
           /* סוף שקודם להתחלה פירושו שנאמר בחלק אחר של היום */
           if (minutes <= 0) minutes += 12 * 60;
           if (minutes <= 0 || minutes > 12 * 60) return false;
 
-          hour = from;
-          minute = fromMin;
+          hour = a.hour;
+          minute = a.minute;
           rangeMinutes = minutes;
           explicit = true;
         });
     }
 
-    if (hour == null) {
-      consume(state, '(?:בשעה|בשעות)\\s*(\\d{1,2})(?:[:.](\\d{2}))?(?![0-9])', function (m) {
-        hour = afternoonHour(parseInt(m[1], 10), dayPartStated);
-        minute = m[2] ? parseInt(m[2], 10) : 0;
-        explicit = true;
-      });
-    }
-    if (hour == null) {
-      consume(state, NO_DIGIT_BEFORE + '(\\d{1,2}):(\\d{2})(?![0-9])', function (m) {
-        hour = afternoonHour(parseInt(m[1], 10), dayPartStated);
-        minute = parseInt(m[2], 10);
-        explicit = true;
-      });
-    }
-    if (hour == null) {
-      /* "ב-8 בבוקר" ו"ב-5" הן שעות; "ב-20 דקות" הוא משך. ההבדל אינו בהקשר
-         שאחרי אלא ביחידה: מספר שאחריו יחידת זמן או מרחק אינו שעה. */
-      var tail = '(?!\\s*' + PREFIX + '(?:' + TIME_ALT + '|' + DIST_ALT + ')' + BR + ')';
+    /* מספר שאחריו יחידה אינו שעה: "ב-8 בבוקר" ו"ב-5" הן שעות, "ב-20 דקות"
+       הוא משך ו"בשתי כפות" היא כמות. ההבדל אינו בהקשר שאחרי אלא ביחידה. */
+    var notAUnit = '(?!\\s*' + PREFIX + '(?:' + TIME_ALT + '|' + DIST_ALT + '|' + UNIT_ALT + ')' + BR + ')';
+
+    function takeClock(prefix, point) {
+      if (hour != null) return;
       /* הגבול אחרי הספרות חיוני: בלעדיו "ב-20 דקות" נסוג להתאמה של "ב-2"
          כשההמשך נפסל, ומקבל שעה שלא נאמרה. */
-      consume(state, NO_DIGIT_BEFORE + 'ב-?(\\d{1,2})(?::(\\d{2}))?(?![0-9])' + tail, function (m) {
-        var h = parseInt(m[1], 10);
-        if (h > 23) return false;
-        hour = afternoonHour(h, dayPartStated);
-        minute = m[2] ? parseInt(m[2], 10) : 0;
+      consume(state, NO_DIGIT_BEFORE + prefix + point + notAUnit, function (m) {
+        var found = clockPoint(m[1], m[2], m[3], m[4], clock);
+        if (!found) return false;
+        hour = found.hour;
+        minute = found.minute;
         explicit = true;
       });
     }
+
+    /* "בשעה" אומרת במפורש שמה שאחריה הוא שעון, ולכן שם מתקבלת גם מילה. */
+    takeClock('(?:בשעה|בשעות)\\s*', CLOCK_POINT);
+    /* גם ב' לבדה: "בשבע" היא שעה. מספר במילים שאחרי ב' ואין אחריו יחידה
+       הוא שעון ולא כמות — "אכלתי בננה בשבע" אינו שבע בננות. */
+    takeClock('ב-?', CLOCK_POINT);
+    /* HH:MM עומדת בפני עצמה: הנקודתיים הן שמסגירות שעון, ובלעדיהן מספר
+       חשוף הוא כמות. */
+    takeClock('', '(\\d{1,2}):(\\d{2})(?![0-9])' + NEVER + '?' + NEVER + '?');
     if (hour == null) {
       var partsOfDay = [
         { re: '(?:ה|ב)בוקר', h: 8 },
@@ -676,13 +722,13 @@
 
   /* ─────────── רשומה בודדת ─────────── */
 
-  function parseSegment(segment, now, dayPartStated) {
+  function parseSegment(segment, now, clock) {
     var raw = normalize(segment);
     var state = { work: raw };
     /* הסוג נקבע לפני שליפת הזמן, כי הוא משנה את פירוש הביטוי "ב-8". */
     var type = detectType(raw);
-    if (dayPartStated == null) dayPartStated = statesDayPart(raw);
-    var time = extractTime(state, now, type, dayPartStated);
+    if (clock == null) clock = clockContext(raw);
+    var time = extractTime(state, now, type, clock);
 
     var rec = {
       type: type,
@@ -827,9 +873,9 @@
     now = now || new Date();
     if (!normalize(text)) return [];
     /* אמירה של חלק ביום עוצרת את כלל אחר הצהריים לכל ההודעה, לא רק למקטע. */
-    var dayPartStated = statesDayPart(text);
+    var clock = clockContext(text);
     return splitSegments(text, opts).map(function (segment) {
-      return parseSegment(segment, now, dayPartStated);
+      return parseSegment(segment, now, clock);
     }).filter(function (rec) {
       return rec.name && rec.name !== '';
     });

@@ -225,7 +225,37 @@ var CASES = [
   { input: 'התאמנתי מ-5 עד 8',
     expect: [{ type: 'workout', name: 'אימון', durationMin: 180, hour: 17, minute: 0 }] },
   { input: 'התאמנתי בבוקר מ-5 עד 8',
-    expect: [{ type: 'workout', name: 'אימון', durationMin: 180, hour: 5, minute: 0 }] }
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 180, hour: 5, minute: 0 }] },
+  /* טווח שעות במילים. ההכתבה מחזירה מילים, וטווח שנקרא רק בספרות השאיר
+     אימון בלי משך — ולכן גם בלי שעת סיום. */
+  { input: 'אימון משבע עד שמונה וחצי',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 90, hour: 19, minute: 0 }] },
+  { input: 'אימון משמונה עד תשע',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 60, hour: 8, minute: 0 }] },
+  { input: 'אימון מ-7 וחצי עד 9',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 90, hour: 19, minute: 30 }] },
+  { input: 'התאמנתי מ7 עד 8 וחצי',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 90, hour: 19, minute: 0 }] },
+  /* חלק יום שנאמר במפורש הוא שקובע, ולא רק מבטל את ברירת המחדל */
+  { input: 'אכלתי בננה ב-7 בערב',
+    expect: [{ type: 'food', name: 'בננה', hour: 19, minute: 0, missing: 'amount' }] },
+  { input: 'אכלתי בננה בתשע בבוקר',
+    expect: [{ type: 'food', name: 'בננה', hour: 9, minute: 0, missing: 'amount' }] },
+  { input: 'אכלתי בננה באחת בלילה',
+    expect: [{ type: 'food', name: 'בננה', hour: 1, minute: 0, missing: 'amount' }] },
+  { input: 'אכלתי בננה ב-19:00 בערב',
+    expect: [{ type: 'food', name: 'בננה', hour: 19, minute: 0, missing: 'amount' }] },
+  /* שעה שנכתבה כ-05:00 נקראת כפי שנכתבה */
+  { input: 'אכלתי בננה ב-05:00',
+    expect: [{ type: 'food', name: 'בננה', hour: 5, minute: 0, missing: 'amount' }] },
+  /* שעה במילים אחרי ב' היא שעון, ולא כמות של מה שנאמר אחריה */
+  { input: 'אכלתי בננה בשבע',
+    expect: [{ type: 'food', name: 'בננה', hour: 19, minute: 0, missing: 'amount' }] },
+  { input: 'סיימתי אימון בשעה שמונה וחצי',
+    expect: [{ type: 'workout', name: 'אימון', hour: 8, minute: 30, missing: 'effort' }] },
+  /* אבל מספר שאחריו יחידה נשאר כמות */
+  { input: 'אכלתי בשתי כפות אורז',
+    expect: [{ type: 'food', name: 'אורז', amount: 2, unit: 'tbsp' }] }
 ];
 
 function actualValue(rec, key) {

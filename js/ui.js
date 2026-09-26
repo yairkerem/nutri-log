@@ -274,7 +274,7 @@
       if (needsAmount) {
         card.appendChild(h('p', { class: 'draft-ask', text: 'כמה ' + (draft.name || 'זה') + '? נא להשלים את הכמות.' }));
       } else if (needsEffort) {
-        card.appendChild(h('p', { class: 'draft-ask', text: 'כמה זמן או איזה מאמץ? נא להשלים דקות, מרחק או חזרות.' }));
+        card.appendChild(h('p', { class: 'draft-ask', text: 'כמה זמן נמשך האימון? אפשר גם לרשום צעדים.' }));
       }
 
       /* שורת כמות */
