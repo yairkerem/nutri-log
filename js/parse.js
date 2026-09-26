@@ -417,6 +417,60 @@
     return parts.filter(function (part) { return part.trim().length > 0; });
   }
 
+  /* פיצול לפי כמויות.
+
+     מנוע ההכתבה בטלפון אינו מוסר סימני פיסוק ואינו מסמן הפסקות — הוא מוסר את
+     כל המשפט מחדש בכל פעם — ולכן "שלושה שניצל כוס מיץ תפוזים שתי כפות אורז"
+     מגיע כרצף אחד. אבל יש בו סימן ברור: כל פריט נפתח בכמות. מתחילים פריט חדש
+     כשמופיעה כמות, ובתנאי שכבר נאסף שם של פריט, ושיש שם נוסף בהמשך — כך
+     "תפוח אחד" נשאר פריט אחד ולא מתפצל לתפוח ולמספר. */
+  function splitOnQuantities(text) {
+    /* באימונים הכמויות הן מידות של אותו מאמץ ("חמישה קילומטר בשלושים דקות"). */
+    if (detectType(text) !== 'food') return [text];
+
+    var tokens = normalize(text).split(' ').filter(Boolean);
+    var chunks = [];
+    var current = [];
+    var named = false;
+
+    tokens.forEach(function (token, index) {
+      if (named && startsQuantity(token) && hasNameAhead(tokens, index)) {
+        chunks.push(current.join(' '));
+        current = [token];
+        named = false;
+        return;
+      }
+      current.push(token);
+      if (isNameWord(token)) named = true;
+    });
+
+    if (current.length) chunks.push(current.join(' '));
+    return chunks;
+  }
+
+  function startsQuantity(token) {
+    var bare = stripPrefix(token);
+    if (parseNumberToken(token) != null || parseNumberToken(bare) != null) return true;
+    return !!(L.unitIndex[token] || L.unitIndex[bare]);
+  }
+
+  function hasNameAhead(tokens, from) {
+    for (var i = from + 1; i < tokens.length; i++) {
+      if (isNameWord(tokens[i])) return true;
+    }
+    return false;
+  }
+
+  /* מילה ששייכת לשם הפריט: לא מספר, לא יחידה, לא מילת זמן או ארוחה, ולא פועל. */
+  function isNameWord(token) {
+    var bare = stripPrefix(token);
+    if (parseNumberToken(token) != null || parseNumberToken(bare) != null) return false;
+    if (MEASURE_WORDS[token] || MEASURE_WORDS[bare]) return false;
+    if (DROP_WORDS[token] || DROP_WORDS[bare]) return false;
+    if (L.mealIndex[token] || L.mealIndex[bare]) return false;
+    return /[א-ת]/.test(token);
+  }
+
   /* "עם" מפריד רק כשמבקשים זאת במפורש: "קפה עם חלב" הוא פריט אחד. */
   function splitOnWith(text) {
     return text.split(new RegExp('\\sעם\\s')).map(function (part) { return part.trim(); });
@@ -437,8 +491,10 @@
     var expanded = [];
     segments.forEach(function (segment) {
       splitOnVav(segment).forEach(function (part) {
-        if (opts.splitWith) expanded = expanded.concat(splitOnWith(part));
-        else expanded.push(part);
+        var pieces = opts.splitWith ? splitOnWith(part) : [part];
+        pieces.forEach(function (piece) {
+          expanded = expanded.concat(splitOnQuantities(piece));
+        });
       });
     });
 
@@ -528,7 +584,9 @@
   /* מילות מידה: יחידות, יחידות זמן ומרחק ומספרים במילים. מקטע שכל כולו מילות
      מידה — "בשלושים דקות" — הוא המשך של המשפט הקודם ולא פריט בפני עצמו. */
   var MEASURE_WORDS = {};
-  [aliasesOf(L.UNITS), aliasesOf(L.TIME_UNITS), aliasesOf(L.DISTANCE_UNITS), Object.keys(L.NUMBER_WORDS)]
+  [aliasesOf(L.UNITS), aliasesOf(L.TIME_UNITS), aliasesOf(L.DISTANCE_UNITS), Object.keys(L.NUMBER_WORDS),
+    /* זוגות בעברית הם כמות ולא שם: "לפני שעתיים" */
+    ['שעתיים', 'יומיים', 'שבועיים', 'ארוחת', 'ארוחה', 'קלוריות', 'קלוריה', 'צעדים', 'סטים', 'חזרות']]
     .forEach(function (list) {
       list.forEach(function (word) { MEASURE_WORDS[word] = true; });
     });

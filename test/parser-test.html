@@ -124,7 +124,26 @@ var CASES = [
   { input: 'רצתי חמישה קילומטר בשלושים דקות',
     expect: [{ type: 'workout', name: 'ריצה', durationMin: 30, distanceKm: 5 }] },
   { input: 'אכלתי כחמש פרוסות לחם',
-    expect: [{ type: 'food', name: 'לחם', amount: 5, unit: 'slice' }] }
+    expect: [{ type: 'food', name: 'לחם', amount: 5, unit: 'slice' }] },
+
+  /* ארוחה שהוכתבה בלי פיסוק ובלי ו' החיבור: כל פריט נפתח בכמות, וזה הגבול.
+     המשפט הזה הגיע ממנוע ההכתבה בטלפון בדיוק כך. */
+  { input: 'שלושה שניצל כוס מיץ תפוזים שתי כפות אורז',
+    expect: [
+      { type: 'food', name: 'שניצל', amount: 3, unit: 'unit' },
+      { type: 'food', name: 'מיץ תפוזים', amount: 1, unit: 'cup' },
+      { type: 'food', name: 'אורז', amount: 2, unit: 'tbsp' }
+    ] },
+  { input: '100 גרם אורז 200 גרם עוף',
+    expect: [
+      { type: 'food', name: 'אורז', amount: 100, unit: 'g' },
+      { type: 'food', name: 'עוף', amount: 200, unit: 'g' }
+    ] },
+  /* כמות שבאה אחרי השם אינה פריט חדש */
+  { input: 'תפוח אחד',
+    expect: [{ type: 'food', name: 'תפוח', amount: 1, unit: 'unit' }] },
+  { input: 'אכלתי ביצה אחת',
+    expect: [{ type: 'food', name: 'ביצה', amount: 1, unit: 'unit' }] }
 ];
 
 function actualValue(rec, key) {
