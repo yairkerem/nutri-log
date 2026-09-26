@@ -14,7 +14,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Nutri Log">
-<link rel="stylesheet" href="css/style.css?v=9">
+<link rel="stylesheet" href="css/style.css?v=10">
 </head>
 <body>
 
@@ -27,6 +27,13 @@
 </header>
 
 <main>
+
+  <!-- מופיע רק כשנמצאה גרסה חדשה -->
+  <div id="updateBar" class="update-bar" role="status" hidden>
+    <span id="updateBarText" class="update-bar-text"></span>
+    <button id="updateBarBtn" class="primary-btn small" type="button">עדכון</button>
+    <button id="updateBarClose" class="update-bar-close" type="button" aria-label="התעלמות מהעדכון">×</button>
+  </div>
 
   <!-- קלט -->
   <section class="card capture" aria-labelledby="captureTitle">
@@ -280,11 +287,11 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="js/lexicon.js?v=9"></script>
-<script src="js/parse.js?v=9"></script>
-<script src="js/store.js?v=9"></script>
-<script src="js/speech.js?v=9"></script>
-<script src="js/ui.js?v=9"></script>
-<script src="js/app.js?v=9"></script>
+<script src="js/lexicon.js?v=10"></script>
+<script src="js/parse.js?v=10"></script>
+<script src="js/store.js?v=10"></script>
+<script src="js/speech.js?v=10"></script>
+<script src="js/ui.js?v=10"></script>
+<script src="js/app.js?v=10"></script>
 </body>
 </html>

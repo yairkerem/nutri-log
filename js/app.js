@@ -3,6 +3,7 @@
   'use strict';
 
   var el = UI.el;
+  var DISMISSED_UPDATE_KEY = 'nutrilog.dismissedUpdate';
   var drafts = [];
   var draftSeq = 0;
   var filters = { type: 'all', search: '', range: '7' };
@@ -20,6 +21,8 @@
     setMicAvailability();
     Store.onChange(refresh);
     refresh();
+    /* אחרי שהדף צויר, כדי לא להתחרות בטעינה הראשונה. */
+    setTimeout(checkForUpdateQuietly, 1200);
   }
 
   function setTodayLabel() {
@@ -593,12 +596,8 @@
     el('btnUpdate').disabled = false;
   }
 
-  function checkForUpdate() {
-    var note = el('versionNote');
-    el('btnUpdate').disabled = true;
-    note.textContent = 'בודק…';
-
-    global.fetch('index.html?u=' + Date.now(), { cache: 'no-store' })
+  function fetchLatestVersion() {
+    return global.fetch('index.html?u=' + Date.now(), { cache: 'no-store' })
       .then(function (response) {
         if (!response.ok) throw new Error('status ' + response.status);
         return response.text();
@@ -606,17 +605,27 @@
       .then(function (html) {
         var match = html.match(/css\/style\.css\?v=(\d+)/);
         if (!match) throw new Error('version not found');
-        var latest = parseInt(match[1], 10);
+        return parseInt(match[1], 10);
+      });
+  }
 
+  /* כתובת חדשה מכריחה את הדפדפן להביא את הדף מחדש ולא מהמטמון. */
+  function reloadFresh() {
+    global.location.replace(global.location.pathname + '?u=' + Date.now());
+  }
+
+  function checkForUpdate() {
+    var note = el('versionNote');
+    el('btnUpdate').disabled = true;
+    note.textContent = 'בודק…';
+
+    fetchLatestVersion()
+      .then(function (latest) {
         if (latest > currentVersion()) {
           note.textContent = 'נמצאה גרסה חדשה (' + latest + '). טוען אותה…';
-          setTimeout(function () {
-            /* כתובת חדשה מכריחה את הדפדפן להביא את הדף מחדש ולא מהמטמון. */
-            global.location.replace(global.location.pathname + '?u=' + Date.now());
-          }, 700);
+          setTimeout(reloadFresh, 700);
           return;
         }
-
         note.textContent = 'גרסה ' + currentVersion() + ' היא העדכנית ביותר.';
         el('btnUpdate').disabled = false;
       })
@@ -624,6 +633,33 @@
         note.textContent = 'לא הצלחתי לבדוק עדכון. צריך חיבור לאינטרנט, ועדכון שפורסם זה עתה עשוי להופיע רק כעבור כעשר דקות.';
         el('btnUpdate').disabled = false;
       });
+  }
+
+  /* בדיקה שקטה בהפעלה: אם יש גרסה חדשה מופיע פס עדכון, וכישלון לא מטריד. */
+  function checkForUpdateQuietly() {
+    fetchLatestVersion().then(function (latest) {
+      if (latest <= currentVersion() || latest <= dismissedVersion()) return;
+      showUpdateBar(latest);
+    }).catch(function () { /* אין חיבור, או פתיחה מקובץ מקומי */ });
+  }
+
+  function dismissedVersion() {
+    try {
+      return parseInt(global.localStorage.getItem(DISMISSED_UPDATE_KEY), 10) || 0;
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  function showUpdateBar(latest) {
+    el('updateBarText').textContent = 'יש גרסה חדשה של Nutri Log (' + latest + ').';
+    el('updateBar').hidden = false;
+    el('updateBarBtn').onclick = reloadFresh;
+    el('updateBarClose').onclick = function () {
+      el('updateBar').hidden = true;
+      /* לא מציקים שוב על אותה גרסה. */
+      try { global.localStorage.setItem(DISMISSED_UPDATE_KEY, String(latest)); } catch (err) { /* nothing to do */ }
+    };
   }
 
   function stamp() {

@@ -151,6 +151,39 @@ main {
 
 .pill:empty { display: none; }
 
+/* ─────────── פס עדכון ─────────── */
+
+.update-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.update-bar-text {
+  flex: 1;
+  min-width: 0;
+  font-size: .88rem;
+}
+
+.update-bar-close {
+  flex: none;
+  width: 28px; height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.update-bar-close:hover { background: var(--card); color: var(--text); }
+
 /* ─────────── קלט ─────────── */
 
 .capture-row {
