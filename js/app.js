@@ -456,6 +456,20 @@
 
     on('btnUpdate', 'click', checkForUpdate);
 
+    /* מה שנשמר באמת ברשומה, כולל מה שהמסך מציג ממנה — כשמשהו נראה חסר, זו
+       הדרך לראות אם הוא חסר בנתון או רק בתצוגה. */
+    on('btnCopyRecords', 'click', function () {
+      var recent = Store.all().slice(0, 3).map(function (rec) {
+        var copy = Object.assign({}, rec);
+        copy['*מוצג*'] = UI.quantityText(rec);
+        return copy;
+      });
+      el('speechLog').value = recent.length
+        ? JSON.stringify(recent, null, 1)
+        : 'אין רשומות.';
+      UI.toast('הרשומות בתיבה — אפשר להעתיק.');
+    });
+
     on('btnCopyLog', 'click', function () {
       var box = el('speechLog');
       box.removeAttribute('readonly');
