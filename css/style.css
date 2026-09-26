@@ -1,16 +1,16 @@
-/* הצבעים נדגמו מהאייקון: כחול-תכלת עמוק (#096781) וירוק התפוח (#8BC55F). */
+/* הצבעים נדגמו מהאייקון: כחול-נפט עמוק (#0D4E64) וירוק התפוח (#85C65E). */
 :root {
-  --bg: #f1f6f8;
+  --bg: #f1f5f7;
   --card: #ffffff;
-  --text: #0f242d;
-  --muted: #5a6f79;
-  --line: #d9e4ea;
-  --topbar: #096781;
-  --accent: #0a6a87;
-  --accent-bright: #0a6a87;
-  --accent-soft: #d8eaf2;
-  --food: #3f7f28;
-  --workout: #0a6a87;
+  --text: #0d212a;
+  --muted: #566c76;
+  --line: #d8e3e8;
+  --topbar: #0d4e64;
+  --accent: #0f5e79;
+  --accent-bright: #0f5e79;
+  --accent-soft: #d7e7ee;
+  --food: #42852a;
+  --workout: #0f5e79;
   --danger: #b91c1c;
   --warn: #92400e;
   --warn-bg: #fdf0cd;
@@ -25,11 +25,11 @@
     --text: #e5eef2;
     --muted: #96aeb8;
     --line: #22363f;
-    --topbar: #07364a;
-    --accent: #0f7fa0;
+    --topbar: #082f3e;
+    --accent: #12647d;
     --accent-bright: #5cc4e0;
-    --accent-soft: #0e2c39;
-    --food: #83c95c;
+    --accent-soft: #0d2a35;
+    --food: #85c65e;
     --workout: #5cc4e0;
     --danger: #f87171;
     --warn: #fcd34d;
@@ -179,12 +179,19 @@ textarea#entryInput:focus, input:focus, select:focus { outline: 2px solid var(--
   border: 1px solid var(--line);
   border-radius: 50%;
   background: var(--accent-soft);
+  /* הסמל יורש את הצבע: שחור על רקע בהיר, בהיר במצב כהה, ולבן בזמן הקלטה. */
   color: var(--text);
-  font-size: 1.35rem;
   cursor: pointer;
   display: grid;
   place-items: center;
   transition: transform .12s ease, background .12s ease;
+}
+
+.mic-icon {
+  width: 26px;
+  height: 26px;
+  fill: currentColor;
+  display: block;
 }
 
 .mic-btn:hover:not(:disabled) { transform: scale(1.04); }

@@ -19,7 +19,7 @@
 <body>
 <h1>יצירת קובצי האייקון</h1>
 <p>
-  מקור האמת הוא <code>icon-source.png</code> שבשורש הפרויקט. הדף מזהה בתוך התמונה את ריבוע האייקון עצמו
+  מקור האמת הוא <code>icon-source.png</code> או <code>icon-source.jpg</code> שבשורש הפרויקט. הדף מזהה בתוך התמונה את ריבוע האייקון עצמו
   (ומתעלם מרקע לבן ומצל שמסביבו), וגוזר ממנו את כל הגדלים שאנדרואיד, iOS והדפדפן צריכים.
   אחרי החלפת תמונת המקור יש לפתוח דף זה, ללחוץ "הורדת כל הקבצים" ולשמור אותם בשורש הפרויקט.
 </p>
@@ -31,7 +31,25 @@
 <div id="grid" class="grid"></div>
 
 <script>
-var SOURCE = '../icon-source.png';
+/* תמונת המקור יכולה להיות PNG או JPG; נטענת הראשונה שקיימת. */
+var SOURCE_CANDIDATES = ['../icon-source.png', '../icon-source.jpg'];
+
+function loadSource() {
+  var attempt = 0;
+  return new Promise(function (resolve, reject) {
+    (function next() {
+      if (attempt >= SOURCE_CANDIDATES.length) {
+        reject(new Error('לא נמצאה תמונת מקור (icon-source.png או icon-source.jpg)'));
+        return;
+      }
+      var candidate = SOURCE_CANDIDATES[attempt++];
+      var img = new Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = next;
+      img.src = candidate + '?r=' + Math.random();
+    })();
+  });
+}
 
 /* ─── זיהוי ריבוע האייקון בתוך תמונת המקור ─── */
 
@@ -134,8 +152,7 @@ var OUTPUTS = [
 
 window.buildIcons = function () {
   return new Promise(function (resolve, reject) {
-    var img = new Image();
-    img.onload = function () {
+    loadSource().then(function (img) {
       var probe = document.createElement('canvas');
       probe.width = img.naturalWidth;
       probe.height = img.naturalHeight;
@@ -152,9 +169,7 @@ window.buildIcons = function () {
       });
 
       Promise.all(pending).then(function (results) { resolve({ box: box, results: results }); });
-    };
-    img.onerror = reject;
-    img.src = SOURCE + '?r=' + Math.random();
+    }, reject);
   });
 };
 
