@@ -14,7 +14,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Nutri Log">
-<link rel="stylesheet" href="css/style.css?v=17">
+<link rel="stylesheet" href="css/style.css?v=19">
 </head>
 <body>
 
@@ -144,11 +144,11 @@
   <div class="field-row">
     <div class="field">
       <label for="editDate">תאריך</label>
-      <input id="editDate" type="date">
+      <input id="editDate" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/YYYY">
     </div>
     <div class="field">
       <label for="editTime">שעה</label>
-      <input id="editTime" type="time">
+      <input id="editTime" type="text" inputmode="numeric" maxlength="5" placeholder="HH:MM">
     </div>
   </div>
 
@@ -242,11 +242,11 @@
     <div id="customRange" class="field-row" hidden>
       <div class="field">
         <label for="exportFrom">מתאריך</label>
-        <input id="exportFrom" type="date">
+        <input id="exportFrom" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/YYYY">
       </div>
       <div class="field">
         <label for="exportTo">עד תאריך</label>
-        <input id="exportTo" type="date">
+        <input id="exportTo" type="text" inputmode="numeric" maxlength="10" placeholder="DD/MM/YYYY">
       </div>
     </div>
 
@@ -288,11 +288,11 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="js/lexicon.js?v=17"></script>
-<script src="js/parse.js?v=17"></script>
-<script src="js/store.js?v=17"></script>
-<script src="js/speech.js?v=17"></script>
-<script src="js/ui.js?v=17"></script>
-<script src="js/app.js?v=17"></script>
+<script src="js/lexicon.js?v=19"></script>
+<script src="js/parse.js?v=19"></script>
+<script src="js/store.js?v=19"></script>
+<script src="js/speech.js?v=19"></script>
+<script src="js/ui.js?v=19"></script>
+<script src="js/app.js?v=19"></script>
 </body>
 </html>

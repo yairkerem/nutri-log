@@ -252,7 +252,7 @@
   var CSV_COLUMNS = [
     ['מזהה', function (r) { return r.id; }],
     ['חותמת זמן', function (r) { return r.ts; }],
-    ['תאריך', function (r) { return localDate(r.ts); }],
+    ['תאריך', function (r) { return displayDate(r.ts); }],
     ['שעה', function (r) { return localTime(r.ts); }],
     ['יום בשבוע', function (r) { return weekday(r.ts); }],
     ['סוג', function (r) { return r.type === 'food' ? 'אוכל' : 'אימון'; }],
@@ -291,9 +291,16 @@
 
   function pad(n) { return n < 10 ? '0' + n : String(n); }
 
+  /* ISO — לשמות קבצים ולעמודת חותמת הזמן, כך שמיון לפי טקסט הוא מיון כרונולוגי. */
   function localDate(ts) {
     var d = new Date(ts);
     return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+
+  /* DD/MM/YYYY — לעמודה שקוראים בעיניים. */
+  function displayDate(ts) {
+    var d = new Date(ts);
+    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
   }
 
   function localTime(ts) {

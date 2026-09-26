@@ -77,7 +77,17 @@
   /* ─────────── קלט ─────────── */
 
   function wireCapture() {
-    on('btnAdd', 'click', function () { submitInput('text'); });
+    on('btnAdd', 'click', function () {
+      /* בזמן הכתבה הכפתור מסיים אותה, והניתוח נעשה במסלול הסיום. ניתוח מיידי
+         היה מרוקן את התיבה בזמן שהמיקרופון עוד כותב לתוכה, ואז מנתח שוב. */
+      if (Speech.isListening()) {
+        el('micStatus').classList.remove('is-warn');
+        el('micStatus').textContent = 'מסיים ומנתח…';
+        Speech.stop();
+        return;
+      }
+      submitInput('text');
+    });
 
     on('entryInput', 'keydown', function (event) {
       if (event.key === 'Enter' && !event.shiftKey) {
@@ -207,6 +217,8 @@
     /* הסמל מתחלף לריבוע עצירה, ולכן גם שם הכפתור מתאר את הפעולה הנוכחית. */
     btn.setAttribute('aria-label', listening ? 'עצירת ההכתבה' : 'הכתבה קולית');
     btn.title = listening ? 'עצירת ההכתבה' : 'הכתבה קולית בעברית';
+    /* הכפתור הראשי אומר מה הוא יעשה עכשיו. */
+    if (el('btnAdd')) el('btnAdd').textContent = listening ? 'סיום וניתוח' : 'ניתוח';
     if (!listening && el('micStatus').textContent === 'מקשיב… אפשר לדבר, ולחיצה נוספת מסיימת.') {
       el('micStatus').textContent = '';
     }
@@ -497,16 +509,17 @@
   }
 
   function prefillCustomRange() {
-    if (!el('exportTo').value) el('exportTo').value = Store.localDate(new Date());
+    if (!el('exportTo').value) el('exportTo').value = UI.dateInputValue(new Date());
     if (!el('exportFrom').value) {
       var from = startOfToday();
       from.setDate(from.getDate() - 13);
-      el('exportFrom').value = Store.localDate(from);
+      el('exportFrom').value = UI.dateInputValue(from);
     }
   }
 
+  /* DD/MM/YYYY, כמו בכל שאר השדות. */
   function dateFromInput(value) {
-    return value ? new Date(value + 'T00:00:00') : null;
+    return UI.combineDateTime(value, '00:00', new Date());
   }
 
   function exportSelection() {

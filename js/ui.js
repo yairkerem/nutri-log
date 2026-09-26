@@ -77,10 +77,22 @@
 
   function pad2(n) { return n < 10 ? '0' + n : String(n); }
 
-  /* תאריך מספרי מבודד: 26.9.2026 */
+  /* תאריך מספרי מבודד, תמיד DD/MM/YYYY: 26/09/2026 */
   function heDateShort(value) {
+    return ltr(dateInputValue(value));
+  }
+
+  /* הערכים שבשדות. שדות date ו-time של הדפדפן מוצגים לפי שפת המכשיר — בטלפון
+     באנגלית זה MM/DD/YYYY ושעון 12 שעות — ולכן השדות כאן הם טקסט, והתבנית
+     קבועה: DD/MM/YYYY ו-24 שעות. */
+  function dateInputValue(value) {
     var d = new Date(value);
-    return ltr(d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear());
+    return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear();
+  }
+
+  function timeInputValue(value) {
+    var d = new Date(value);
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   }
 
   /* היום בשבוע הוא מה שאנשים באמת בודקים מול תאריך. */
@@ -311,8 +323,8 @@
 
       /* שורת זמן */
       var date = new Date(draft.ts);
-      var dateInput = h('input', { class: 'date', type: 'date', value: global.Store.localDate(draft.ts), 'aria-label': 'תאריך' });
-      var timeInput = h('input', { class: 'time', type: 'time', value: global.Store.localTime(draft.ts), 'aria-label': 'שעה' });
+      var dateInput = h('input', { class: 'date', type: 'text', inputmode: 'numeric', maxlength: '10', value: dateInputValue(draft.ts), 'aria-label': 'תאריך', placeholder: 'DD/MM/YYYY' });
+      var timeInput = h('input', { class: 'time', type: 'text', inputmode: 'numeric', maxlength: '5', value: timeInputValue(draft.ts), 'aria-label': 'שעה', placeholder: 'HH:MM' });
       function pushTime() {
         var next = combineDateTime(dateInput.value, timeInput.value, date);
         if (next) actions.onChange(draft.key, { ts: next.toISOString() }, true);
@@ -385,13 +397,27 @@
     return [0.5, 1, 2, 3];
   }
 
+  /* מקבל DD/MM/YYYY (וגם נקודה או מקף כמפריד, ושנה דו־ספרתית) ושעה בת 24
+     שעות. מחזיר null על קלט שאינו תאריך אמיתי, כדי שלא תישמר שעה שהומצאה. */
   function combineDateTime(dateValue, timeValue, fallback) {
-    var parts = (dateValue || '').split('-').map(Number);
-    var clock = (timeValue || '').split(':').map(Number);
-    if (parts.length !== 3 || clock.length < 2 || parts.some(isNaN) || clock.some(isNaN)) return null;
+    var date = String(dateValue || '').trim().match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/);
+    var clock = String(timeValue || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+    if (!date || !clock) return null;
+
+    var day = parseInt(date[1], 10);
+    var month = parseInt(date[2], 10);
+    var year = parseInt(date[3], 10);
+    if (year < 100) year += 2000;
+    var hours = parseInt(clock[1], 10);
+    var minutes = parseInt(clock[2], 10);
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+    if (hours > 23 || minutes > 59) return null;
+
     var d = new Date(fallback ? fallback.getTime() : Date.now());
-    d.setFullYear(parts[0], parts[1] - 1, parts[2]);
-    d.setHours(clock[0], clock[1], 0, 0);
+    d.setFullYear(year, month - 1, day);
+    d.setHours(hours, minutes, 0, 0);
+    /* 31 בחודש בן 30 יום גולש לחודש הבא — זה אינו התאריך שנכתב. */
+    if (d.getDate() !== day || d.getMonth() !== month - 1) return null;
     return d;
   }
 
@@ -451,8 +477,8 @@
   function openEdit(rec) {
     editState.id = rec.id;
     el('editName').value = rec.name || '';
-    el('editDate').value = global.Store.localDate(rec.ts);
-    el('editTime').value = global.Store.localTime(rec.ts);
+    el('editDate').value = dateInputValue(rec.ts);
+    el('editTime').value = timeInputValue(rec.ts);
     el('editAmount').value = rec.amount != null ? rec.amount : '';
     el('editUnit').value = rec.unit || '';
     el('editMeal').value = rec.meal || '';
@@ -478,10 +504,16 @@
     var name = el('editName').value.trim();
     if (!name) { el('editName').focus(); return null; }
     var ts = combineDateTime(el('editDate').value, el('editTime').value, new Date());
+    /* תאריך או שעה שאי אפשר לקרוא לא ייהפכו בשקט ל"עכשיו". */
+    if (!ts) {
+      toast('תאריך או שעה לא תקינים. התבנית היא DD/MM/YYYY ושעון 24 שעות.');
+      el('editDate').focus();
+      return null;
+    }
     var type = el('editDialog').dataset.type;
     var patch = {
       name: name,
-      ts: (ts || new Date()).toISOString(),
+      ts: ts.toISOString(),
       note: el('editNote').value.trim()
     };
     if (type === 'food') {
@@ -566,6 +598,8 @@
     heDate: heDate,
     heDateShort: heDateShort,
     heTime: heTime,
+    dateInputValue: dateInputValue,
+    timeInputValue: timeInputValue,
     renderStats: renderStats,
     renderWeek: renderWeek,
     renderLog: renderLog,
