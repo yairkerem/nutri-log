@@ -35,6 +35,9 @@
 
 * { box-sizing: border-box; }
 
+/* כללי ה-display שבהמשך חזקים יותר מברירת המחדל של [hidden], ולכן נדרש כאן !important. */
+[hidden] { display: none !important; }
+
 html { -webkit-text-size-adjust: 100%; }
 
 body {
@@ -132,6 +135,8 @@ main {
   border-radius: 999px;
   padding: 2px 9px;
 }
+
+.pill:empty { display: none; }
 
 /* ─────────── קלט ─────────── */
 
