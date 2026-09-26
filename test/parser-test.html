@@ -179,7 +179,21 @@ var CASES = [
     expect: [{ type: 'workout', name: 'ריצה', durationMin: 30, hour: 14, minute: 0, endHour: 14 }] },
   /* שעה מפורשת היא שעת ההתחלה */
   { input: 'רצתי בשעה 8 חצי שעה',
-    expect: [{ type: 'workout', name: 'ריצה', durationMin: 30, hour: 8, minute: 0, endHour: 8 }] }
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 30, hour: 8, minute: 0, endHour: 8 }] },
+
+  /* משך מורכב: שבר של היחידה, או דקות שמתווספות לשעה */
+  { input: 'אימון של שעה ורבע',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 75 }] },
+  { input: 'התאמנתי שעה ועשרים',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 80 }] },
+  { input: 'אימון של שעתיים ורבע',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 135 }] },
+  { input: 'רצתי שתיים וחצי שעות',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 150 }] },
+  { input: 'אימון של שלושת רבעי שעה',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 45 }] },
+  { input: 'רצתי שתי שעות ועשרים',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 140 }] }
 ];
 
 function actualValue(rec, key) {

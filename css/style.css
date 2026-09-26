@@ -492,7 +492,11 @@ input.num, input.time, input.date, select.unit {
   font-size: .9rem;
 }
 
-input.num { width: 84px; }
+/* רוחב לפי התוכן ולא ברירת המחדל של שדה טקסט: בטלפון שדה תאריך ברוחב מלא
+   דחק את שאר השדות לשורות נפרדות. */
+input.num { width: 76px; }
+input.date { width: 7.4em; flex: none; }
+input.time { width: 5.2em; flex: none; }
 
 input.num.needs {
   border-color: var(--warn);
@@ -777,6 +781,11 @@ input.num.needs {
 }
 
 .field-row { display: flex; gap: 10px; }
+
+/* גם בחלון העריכה השדות נמדדים לפי מה שנכנס בהם, ולא נמתחים על כל הטור. */
+#editDate, #exportFrom, #exportTo { max-width: 8.6em; }
+#editTime { max-width: 6.2em; }
+#editAmount, #editCalories, #editDuration, #editDistance, #editSets, #editReps { max-width: 7.5em; }
 
 .field-group {
   border: 1px solid var(--line);

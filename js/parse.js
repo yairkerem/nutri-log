@@ -70,6 +70,11 @@
   var WORD_NUM = BL + '[ובכל]{0,2}(?:' + NUMBER_WORD_ALT + ')' + BR;
   var NUM = '(?:' + DIGIT_NUM + '|' + FRACTION_ALT + '|' + WORD_NUM + ')';
 
+  /* תוספת שמחוברת ב-ו': "שעה ורבע". ו' חייבת להיות בתוך ההתאמה ולא לפניה,
+     כי גבול המילה השמאלי נבדק מול התו הקודם — ו' עצמה היא אות עברית, וכתיבתה
+     בנפרד הפילה את ההתאמה של המספר שאחריה. */
+  var VAV_NUM = BL + 'ו-?(?:' + NUMBER_WORD_ALT + '|\\d+(?:\\.\\d+)?)' + BR;
+
   var UNIT_ALT = altOf(aliasesOf(L.UNITS));
   var TIME_ALT = altOf(aliasesOf(L.TIME_UNITS));
   var DIST_ALT = altOf(aliasesOf(L.DISTANCE_UNITS));
@@ -309,30 +314,72 @@
 
   /* ─────────── אימון ─────────── */
 
+  /* "שעה וחצי", "שעה ורבע", "שעה ועשרים": תוספת קטנה מ-1 היא שבר של היחידה,
+     ותוספת שלמה אחרי שעה היא דקות — כך אומרים את זה. */
+  function durationFrom(count, unit, extra) {
+    var base = count * unit.minutes;
+    if (extra == null) return round1(base);
+    if (extra < 1) return round1(base + extra * unit.minutes);
+    if (unit.minutes >= 60) return round1(base + extra);
+    return round1(base + extra * unit.minutes);
+  }
+
+  function timeUnitOf(word) {
+    return L.timeUnitIndex[stripPrefix(word)] || L.timeUnitIndex[word] || null;
+  }
+
   function fillWorkout(state, rec) {
-    consume(state, BL + 'שעתיים' + BR, function () { rec.durationMin = 120; });
+    var HOUR = { minutes: 60 };
+
+    /* "שעתיים ורבע" */
+    consume(state, BL + 'שעתיים\\s*(' + VAV_NUM + ')', function (m) {
+      var extra = parseNumberToken(m[1]);
+      if (extra == null) return false;
+      rec.durationMin = durationFrom(2, HOUR, extra);
+    });
 
     if (rec.durationMin == null) {
-      consume(state, '(' + NUM + ')\\s*ו?חצי\\s*' + token(TIME_ALT), function (m) {
-        var n = parseNumberToken(m[1]);
-        var unit = L.timeUnitIndex[stripPrefix(m[2])] || L.timeUnitIndex[m[2]];
-        if (n == null || !unit) return false;
-        rec.durationMin = round1(n * unit.minutes + unit.minutes / 2);
-      });
+      consume(state, BL + 'שעתיים' + BR, function () { rec.durationMin = 120; });
     }
+
+    /* "שתיים וחצי שעות" */
     if (rec.durationMin == null) {
-      consume(state, token(TIME_ALT) + '\\s*ו?חצי' + BR, function (m) {
-        var unit = L.timeUnitIndex[stripPrefix(m[1])] || L.timeUnitIndex[m[1]];
-        if (!unit) return false;
-        rec.durationMin = round1(unit.minutes * 1.5);
+      consume(state, '(' + NUM + ')\\s*(' + VAV_NUM + ')\\s*' + token(TIME_ALT), function (m) {
+        var count = parseNumberToken(m[1]);
+        var extra = parseNumberToken(m[2]);
+        var unit = timeUnitOf(m[3]);
+        if (count == null || extra == null || !unit || extra >= 1) return false;
+        rec.durationMin = durationFrom(count, unit, extra);
       });
     }
+
+    /* "שתי שעות ורבע" */
+    if (rec.durationMin == null) {
+      consume(state, '(' + NUM + ')\\s*' + token(TIME_ALT) + '\\s*(' + VAV_NUM + ')', function (m) {
+        var count = parseNumberToken(m[1]);
+        var unit = timeUnitOf(m[2]);
+        var extra = parseNumberToken(m[3]);
+        if (count == null || !unit || extra == null) return false;
+        rec.durationMin = durationFrom(count, unit, extra);
+      });
+    }
+
+    /* "שעה ורבע", "שעה ועשרים" */
+    if (rec.durationMin == null) {
+      consume(state, token(TIME_ALT) + '\\s*(' + VAV_NUM + ')', function (m) {
+        var unit = timeUnitOf(m[1]);
+        var extra = parseNumberToken(m[2]);
+        if (!unit || extra == null) return false;
+        rec.durationMin = durationFrom(1, unit, extra);
+      });
+    }
+
     if (rec.durationMin == null) {
       consume(state, '(' + NUM + ')\\s*' + token(TIME_ALT), function (m) {
-        var n = parseNumberToken(m[1]);
-        var unit = L.timeUnitIndex[stripPrefix(m[2])] || L.timeUnitIndex[m[2]];
-        if (n == null || !unit) return false;
-        rec.durationMin = round1(n * unit.minutes);
+        var count = parseNumberToken(m[1]);
+        var unit = timeUnitOf(m[2]);
+        if (count == null || !unit) return false;
+        rec.durationMin = durationFrom(count, unit, null);
       });
     }
 
@@ -446,7 +493,11 @@
       var bare = token.replace(/^ו-?/, '');
       /* "שלושים ושתיים" הוא מספר אחד, לא שני פריטים. */
       var previous = index > 0 ? stripPrefix(tokens[index - 1]) : '';
-      var insideNumber = NUMBER_LOOKUP[previous] != null && NUMBER_LOOKUP[bare] != null;
+      /* "שלושים ושתיים" הוא מספר, ו"שעה ורבע" הוא משך: בשניהם ו' מחברת ולא
+         מפרידה. די בכך שאחריה בא מספר ולפניה מספר או יחידת זמן. */
+      var joinsNumber = NUMBER_LOOKUP[bare] != null &&
+        (NUMBER_LOOKUP[previous] != null || L.timeUnitIndex[previous] != null || previous === 'שעתיים');
+      var insideNumber = joinsNumber;
       var splits = index > 0 &&
         /^ו/.test(token) &&
         bare.length > 1 &&
