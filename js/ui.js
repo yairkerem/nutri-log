@@ -376,6 +376,29 @@
       handlers.onDelete(editState.id);
       closeDialog(el('editDialog'));
     });
+
+    el('editSplit').addEventListener('click', function () {
+      var patch = readEditForm();
+      if (!patch) return;
+      handlers.onSplit(editState.id, patch);
+      closeDialog(el('editDialog'));
+    });
+
+    /* הכפתור פעיל רק כשיש באמת מה לפצל, ומתעדכן תוך כדי עריכת השם. */
+    el('editName').addEventListener('input', refreshSplitState);
+  }
+
+  function refreshSplitState() {
+    el('editSplit').disabled = !canSplitText(el('editName').value, el('editDialog').dataset.type);
+  }
+
+  function canSplitText(text, type) {
+    var source = (text || '').trim();
+    if (!source) return false;
+    var parts = global.Parser.parse(source, new Date(), { splitWith: true });
+    if (parts.length < 2) return false;
+    /* פיצול שכל חלקיו מאבדים את שמם אינו פיצול שימושי. */
+    return parts.every(function (part) { return part.name && part.name !== (type === 'workout' ? 'אימון' : 'אוכל'); });
   }
 
   function openEdit(rec) {
@@ -397,6 +420,7 @@
     el('editFoodFields').hidden = rec.type !== 'food';
     el('editWorkoutFields').hidden = rec.type !== 'workout';
     el('editDialog').dataset.type = rec.type;
+    refreshSplitState();
     openDialog(el('editDialog'));
   }
 

@@ -12,7 +12,7 @@
 
   function init() {
     Store.load();
-    UI.initEditDialog({ onSave: saveEdit, onDelete: deleteRecord });
+    UI.initEditDialog({ onSave: saveEdit, onDelete: deleteRecord, onSplit: splitRecord });
     wireCapture();
     wireFilters();
     wireData();
@@ -316,6 +316,61 @@
   function saveEdit(id, patch) {
     Store.update(id, patch);
     UI.toast('הרשומה עודכנה.');
+  }
+
+  /* פיצול רשומה שכבר נשמרה: הרשומה המקורית מוחלפת ברשומה לכל מרכיב, באותה
+     חותמת זמן. הכמות נשארת אצל המרכיב הראשון, אלא אם מרכיב נושא כמות משלו. */
+  function splitRecord(id, patch) {
+    var existing = Store.get(id);
+    if (!existing) return;
+
+    var base = Object.assign({}, existing, patch || {});
+    var parts = Parser.parse(base.name, new Date(base.ts), { splitWith: true });
+    if (parts.length < 2) {
+      UI.toast('אין מה לפצל ברשומה הזו.');
+      return;
+    }
+
+    var created = parts.map(function (part, position) {
+      var out = {
+        type: part.type,
+        name: part.name,
+        ts: base.ts,
+        note: base.note,
+        raw: base.raw,
+        source: base.source
+      };
+      if (part.type === 'food') {
+        out.meal = base.meal;
+        out.amount = part.amount;
+        out.unit = part.unit;
+        if (position === 0) {
+          if (out.amount == null && base.amount != null) {
+            out.amount = base.amount;
+            out.unit = base.unit;
+          }
+          out.calories = base.calories;
+        }
+      } else {
+        out.durationMin = part.durationMin;
+        out.distanceKm = part.distanceKm;
+        out.steps = part.steps;
+        out.sets = part.sets;
+        out.reps = part.reps;
+        out.intensity = part.intensity;
+      }
+      return out;
+    });
+
+    Store.addMany(created);
+    Store.remove(id);
+
+    var incomplete = created.filter(function (rec) {
+      return rec.type === 'food' && rec.amount == null;
+    }).length;
+    UI.toast(incomplete
+      ? 'פוצל ל־' + created.length + ' רשומות. חסרה כמות ב־' + incomplete + '.'
+      : 'פוצל ל־' + created.length + ' רשומות.');
   }
 
   function deleteRecord(id) {
