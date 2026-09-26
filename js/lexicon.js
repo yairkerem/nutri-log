@@ -1,0 +1,188 @@
+/* מילון עברי: מספרים, יחידות מידה, פעילויות וביטויי זמן. */
+(function (global) {
+  'use strict';
+
+  /* מספרים במילים. מפתחות ארוכים קודם — הסדר נשמר בבנייה של הביטוי הרגולרי. */
+  var NUMBER_WORDS = {
+    'אחד עשר': 11,
+    'אחת עשרה': 11,
+    'שנים עשר': 12,
+    'שתים עשרה': 12,
+    'שלושה עשר': 13,
+    'חמש עשרה': 15,
+    'עשרים': 20,
+    'שלושים': 30,
+    'ארבעים': 40,
+    'חמישים': 50,
+    'שישים': 60,
+    'שבעים': 70,
+    'שמונים': 80,
+    'תשעים': 90,
+    'מאתיים': 200,
+    'מאה': 100,
+    'שלושה': 3,
+    'שלוש': 3,
+    'ארבעה': 4,
+    'ארבע': 4,
+    'חמישה': 5,
+    'חמש': 5,
+    'שישה': 6,
+    'ששה': 6,
+    'שיש': 6,
+    'שש': 6,
+    'שבעה': 7,
+    'שבע': 7,
+    'שמונה': 8,
+    'תשעה': 9,
+    'תשע': 9,
+    'עשרה': 10,
+    'עשר': 10,
+    'שניים': 2,
+    'שתיים': 2,
+    'שני': 2,
+    'שתי': 2,
+    'זוג': 2,
+    'אחד': 1,
+    'אחת': 1,
+    'חצי': 0.5,
+    'רבע': 0.25,
+    'שליש': 0.3333
+  };
+
+  /* שברים בתו אחד. */
+  var FRACTION_CHARS = { '½': 0.5, '¼': 0.25, '¾': 0.75, '⅓': 0.3333, '⅔': 0.6667 };
+
+  /* יחידות מידה לאוכל. label = יחיד, plural = רבים. */
+  var UNITS = [
+    { key: 'g', label: 'גרם', plural: 'גרם', aliases: ['גרם', 'גרמים', 'גר'] },
+    { key: 'kg', label: 'ק"ג', plural: 'ק"ג', aliases: ['ק"ג', 'קג', 'קילו', 'קילוגרם', 'קילוגרמים'] },
+    { key: 'ml', label: 'מ"ל', plural: 'מ"ל', aliases: ['מ"ל', 'מל', 'מיליליטר', 'מיליליטרים'] },
+    { key: 'l', label: 'ליטר', plural: 'ליטר', aliases: ['ליטר', 'ליטרים'] },
+    { key: 'cup', label: 'כוס', plural: 'כוסות', aliases: ['כוס', 'כוסות', 'כוסית'] },
+    { key: 'tbsp', label: 'כף', plural: 'כפות', aliases: ['כף', 'כפות'] },
+    { key: 'tsp', label: 'כפית', plural: 'כפיות', aliases: ['כפית', 'כפיות'] },
+    { key: 'slice', label: 'פרוסה', plural: 'פרוסות', aliases: ['פרוסה', 'פרוסות', 'פרוסת'] },
+    { key: 'serving', label: 'מנה', plural: 'מנות', aliases: ['מנה', 'מנות', 'מנת'] },
+    { key: 'plate', label: 'צלחת', plural: 'צלחות', aliases: ['צלחת', 'צלחות', 'קערה', 'קערות'] },
+    { key: 'bowl', label: 'קערית', plural: 'קעריות', aliases: ['קערית', 'קעריות'] },
+    { key: 'package', label: 'חבילה', plural: 'חבילות', aliases: ['חבילה', 'חבילות', 'שקית', 'שקיות'] },
+    { key: 'container', label: 'קופסה', plural: 'קופסאות', aliases: ['קופסה', 'קופסאות', 'קופסת', 'גביע', 'גביעים', 'אריזה'] },
+    { key: 'bottle', label: 'בקבוק', plural: 'בקבוקים', aliases: ['בקבוק', 'בקבוקים', 'פחית', 'פחיות'] },
+    { key: 'handful', label: 'חופן', plural: 'חופנים', aliases: ['חופן', 'חופנים', 'קומץ'] },
+    { key: 'unit', label: 'יחידה', plural: 'יחידות', aliases: ['יחידה', 'יחידות', 'יח'] }
+  ];
+
+  /* יחידות זמן ומרחק לאימונים. */
+  var TIME_UNITS = [
+    { key: 'min', minutes: 1, aliases: ['דקות', 'דקה', 'דק'] },
+    { key: 'hour', minutes: 60, aliases: ['שעות', 'שעה'] },
+    { key: 'sec', minutes: 1 / 60, aliases: ['שניות', 'שנייה', 'שניה'] }
+  ];
+
+  var DISTANCE_UNITS = [
+    { key: 'km', km: 1, aliases: ['ק"מ', 'קמ', 'קילומטר', 'קילומטרים'] },
+    { key: 'm', km: 0.001, aliases: ['מטר', 'מטרים'] },
+    { key: 'mile', km: 1.609, aliases: ['מייל', 'מיילים'] }
+  ];
+
+  /* פעילויות: כל מילת זיהוי ממפה לשם קנוני. */
+  var ACTIVITIES = [
+    { name: 'ריצה', aliases: ['רצתי', 'ריצה', 'רצה', 'לרוץ', "ג'וגינג", 'ג׳וגינג'] },
+    { name: 'הליכה', aliases: ['הלכתי', 'הליכה', 'צעדתי', 'צעדים', 'הליכון'] },
+    { name: 'אופניים', aliases: ['אופניים', 'אופנים', 'רכבתי', 'ספינינג', 'אופני'] },
+    { name: 'שחייה', aliases: ['שחיתי', 'שחייה', 'שחיה', 'בריכה'] },
+    { name: 'חדר כושר', aliases: ['חדר כושר', 'כושר', 'משקולות', 'הרמתי', 'מכון', 'הרמת משקולות'] },
+    { name: 'יוגה', aliases: ['יוגה'] },
+    { name: 'פילאטיס', aliases: ['פילאטיס', 'פילטיס'] },
+    { name: 'קרוספיט', aliases: ['קרוספיט'] },
+    { name: 'אירובי', aliases: ['אירובי', 'אירוביקה', 'זומבה'] },
+    { name: 'אליפטי', aliases: ['אליפטי', 'אליפטיקל'] },
+    { name: 'חתירה', aliases: ['חתירה', 'מכונת חתירה'] },
+    { name: 'סקוואטים', aliases: ['סקוואט', 'סקוואטים', 'סקווט', 'סקווטים'] },
+    { name: 'שכיבות סמיכה', aliases: ['שכיבות סמיכה', 'שכיבות'] },
+    { name: 'עליות מתח', aliases: ['עליות מתח', 'מתח'] },
+    { name: 'כפיפות בטן', aliases: ['כפיפות בטן', 'בטן', 'אבס'] },
+    { name: 'פלאנק', aliases: ['פלאנק', 'פלנק'] },
+    { name: 'חבל קפיצה', aliases: ['חבל קפיצה', 'קפיצה בחבל'] },
+    { name: 'טניס', aliases: ['טניס', 'פאדל', 'סקווש'] },
+    { name: 'כדורסל', aliases: ['כדורסל'] },
+    { name: 'כדורגל', aliases: ['כדורגל'] },
+    { name: 'כדורעף', aliases: ['כדורעף'] },
+    { name: 'אומנויות לחימה', aliases: ['קרב מגע', "ג'ודו", 'ג׳ודו', 'קראטה', 'אגרוף', 'קיקבוקס', 'בוקס', 'היאבקות'] },
+    { name: 'מדרגות', aliases: ['מדרגות', 'סטפר'] },
+    { name: 'טיול', aliases: ['טיול', 'טרק', 'הייקינג'] },
+    { name: 'מתיחות', aliases: ['מתיחות', 'סטרצ׳ינג'] },
+    { name: 'אימון', aliases: ['אימון', 'התאמנתי', 'אימנתי', 'אירובית', 'חוג'] }
+  ];
+
+  /* מילים שמצביעות על אימון גם בלי שם פעילות מזוהה. */
+  var WORKOUT_HINTS = ['סטים', 'סט', 'חזרות', 'אימון', 'התאמנתי', 'מאמן', 'דופק', 'עצימות'];
+
+  /* פעלים של אכילה ושתייה — מוסרים משם הפריט. */
+  var FOOD_VERBS = ['אכלתי', 'אכלנו', 'אכל', 'שתיתי', 'שתינו', 'שתה', 'טעמתי', 'נשנשתי', 'צרכתי', 'לקחתי'];
+
+  /* ארוחות. */
+  var MEALS = [
+    { key: 'breakfast', label: 'בוקר', aliases: ['ארוחת בוקר', 'בוקר'] },
+    { key: 'lunch', label: 'צהריים', aliases: ['ארוחת צהריים', 'צהריים', 'צהרים'] },
+    { key: 'dinner', label: 'ערב', aliases: ['ארוחת ערב', 'ערב'] },
+    { key: 'snack', label: 'ביניים', aliases: ['ארוחת ביניים', 'נשנוש', 'חטיף', 'ביניים'] }
+  ];
+
+  var INTENSITIES = [
+    { key: 'low', label: 'קלה', aliases: ['קל', 'קלה', 'רגוע', 'רגועה'] },
+    { key: 'medium', label: 'בינונית', aliases: ['בינוני', 'בינונית'] },
+    { key: 'high', label: 'גבוהה', aliases: ['חזק', 'חזקה', 'אינטנסיבי', 'אינטנסיבית', 'קשה', 'מפרך'] }
+  ];
+
+  /* מילים שאין להן ערך בשם הרשומה. */
+  var FILLER_WORDS = [
+    'היום', 'אתמול', 'שלשום', 'הבוקר', 'בבוקר', 'בצהריים', 'בצהרים', 'בערב', 'הערב',
+    'בלילה', 'הלילה', 'בשעה', 'לפני', 'בערך', 'סהכ', 'בסך', 'הכל', 'של', 'את',
+    'עשיתי', 'היה', 'הייתי', 'כ', 'ב', 'בתוך', 'במשך', 'גם', 'ועוד', 'ואז', 'עוד'
+  ];
+
+  /* מפרידים בין פריטים באותו משפט. */
+  var SPLIT_WORDS = ['וגם', 'ועוד', 'ואז', 'ואחר כך', 'אחר כך', 'ובנוסף', 'בנוסף', 'וכן', 'ולאחר מכן'];
+
+  function buildAliasIndex(list) {
+    var index = {};
+    list.forEach(function (item) {
+      item.aliases.forEach(function (alias) { index[alias] = item; });
+    });
+    return index;
+  }
+
+  global.Lexicon = {
+    NUMBER_WORDS: NUMBER_WORDS,
+    FRACTION_CHARS: FRACTION_CHARS,
+    UNITS: UNITS,
+    TIME_UNITS: TIME_UNITS,
+    DISTANCE_UNITS: DISTANCE_UNITS,
+    ACTIVITIES: ACTIVITIES,
+    WORKOUT_HINTS: WORKOUT_HINTS,
+    FOOD_VERBS: FOOD_VERBS,
+    MEALS: MEALS,
+    INTENSITIES: INTENSITIES,
+    FILLER_WORDS: FILLER_WORDS,
+    SPLIT_WORDS: SPLIT_WORDS,
+    unitIndex: buildAliasIndex(UNITS),
+    timeUnitIndex: buildAliasIndex(TIME_UNITS),
+    distanceUnitIndex: buildAliasIndex(DISTANCE_UNITS),
+    activityIndex: buildAliasIndex(ACTIVITIES),
+    mealIndex: buildAliasIndex(MEALS),
+    intensityIndex: buildAliasIndex(INTENSITIES),
+    unitByKey: function (key) {
+      for (var i = 0; i < UNITS.length; i++) { if (UNITS[i].key === key) return UNITS[i]; }
+      return null;
+    },
+    mealByKey: function (key) {
+      for (var i = 0; i < MEALS.length; i++) { if (MEALS[i].key === key) return MEALS[i]; }
+      return null;
+    },
+    intensityByKey: function (key) {
+      for (var i = 0; i < INTENSITIES.length; i++) { if (INTENSITIES[i].key === key) return INTENSITIES[i]; }
+      return null;
+    }
+  };
+})(window);

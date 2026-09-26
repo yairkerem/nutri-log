@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>יומן תזונה ואימונים</title>
+<meta name="description" content="יומן אישי לתיעוד אוכל ואימונים בעברית, כולל הכתבה קולית, כמויות וחותמות זמן.">
+<meta name="theme-color" content="#0f766e">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-main">
+    <h1>יומן תזונה ואימונים</h1>
+    <p id="todayLabel" class="topbar-sub"></p>
+  </div>
+  <button id="btnData" class="icon-btn" type="button" title="נתונים וגיבוי" aria-label="נתונים וגיבוי">⋯</button>
+</header>
+
+<main>
+
+  <!-- קלט -->
+  <section class="card capture" aria-labelledby="captureTitle">
+    <h2 id="captureTitle" class="sr-only">הוספת רשומה</h2>
+
+    <div class="capture-row">
+      <textarea id="entryInput" rows="2" enterkeyhint="done"
+        placeholder="מה אכלת או איך התאמנת? למשל: 100 גרם אורז עם חזה עוף"
+        aria-label="תיאור חופשי של אוכל או אימון"></textarea>
+
+      <div class="capture-actions">
+        <button id="btnMic" class="mic-btn" type="button" aria-label="הכתבה קולית" aria-pressed="false">
+          <span class="mic-icon" aria-hidden="true">🎤</span>
+        </button>
+        <button id="btnAdd" class="primary-btn" type="button">הוספה</button>
+      </div>
+    </div>
+
+    <p id="micStatus" class="mic-status" role="status" aria-live="polite"></p>
+
+    <div class="hints">
+      <span class="hint-label">דוגמאות:</span>
+      <button class="chip chip-hint" type="button" data-example="אכלתי 2 פרוסות לחם עם אבוקדו">2 פרוסות לחם עם אבוקדו</button>
+      <button class="chip chip-hint" type="button" data-example="שתיתי 250 מ&quot;ל קפה עם חלב בשעה 8:15">250 מ&quot;ל קפה בשעה 8:15</button>
+      <button class="chip chip-hint" type="button" data-example="רצתי 5 ק&quot;מ ב-32 דקות">רצתי 5 ק&quot;מ ב-32 דקות</button>
+      <button class="chip chip-hint" type="button" data-example="חדר כושר שעה וחצי, 3 סטים של 12 חזרות">חדר כושר שעה וחצי</button>
+    </div>
+
+    <div id="recentWrap" class="hints recent-wrap" hidden>
+      <span class="hint-label">חזרה על רשומה:</span>
+      <span id="recentChips" class="recent-chips"></span>
+    </div>
+  </section>
+
+  <!-- טיוטות הממתינות להשלמה -->
+  <section id="draftSection" class="card drafts" hidden aria-labelledby="draftTitle">
+    <h2 id="draftTitle" class="card-title">
+      <span>השלמת פרטים</span>
+      <span id="draftCount" class="pill"></span>
+    </h2>
+    <p class="drafts-note">אפשר להשלים את הכמות, לשמור ללא כמות, או להסיר את הרשומה.</p>
+    <div id="draftList" class="draft-list"></div>
+    <div class="drafts-footer">
+      <button id="btnSaveAllDrafts" class="primary-btn" type="button">שמירת הכל</button>
+      <button id="btnClearDrafts" class="ghost-btn" type="button">ביטול הכל</button>
+    </div>
+  </section>
+
+  <!-- סיכום יומי -->
+  <section class="card summary" aria-labelledby="summaryTitle">
+    <h2 id="summaryTitle" class="card-title"><span>סיכום היום</span></h2>
+    <div class="stat-grid">
+      <div class="stat"><span id="statFood" class="stat-num">0</span><span class="stat-label">רשומות אוכל</span></div>
+      <div class="stat"><span id="statWorkout" class="stat-num">0</span><span class="stat-label">אימונים</span></div>
+      <div class="stat"><span id="statMinutes" class="stat-num">0</span><span class="stat-label">דקות אימון</span></div>
+      <div class="stat"><span id="statDistance" class="stat-num">0</span><span class="stat-label">ק&quot;מ</span></div>
+    </div>
+    <div class="week-bars">
+      <div id="weekBars" class="week-bars-inner"></div>
+      <p class="week-caption">דקות אימון ב־7 הימים האחרונים</p>
+    </div>
+  </section>
+
+  <!-- יומן -->
+  <section class="card log" aria-labelledby="logTitle">
+    <h2 id="logTitle" class="card-title">
+      <span>היומן</span>
+      <span id="logCount" class="pill"></span>
+    </h2>
+
+    <div class="filters">
+      <div class="tabs" role="tablist" aria-label="סינון לפי סוג">
+        <button class="tab is-active" type="button" role="tab" aria-selected="true" data-filter="all">הכל</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-filter="food">אוכל</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-filter="workout">אימונים</button>
+      </div>
+      <input id="searchInput" class="search" type="search" placeholder="חיפוש בטקסט…" aria-label="חיפוש ביומן">
+      <select id="rangeSelect" class="range" aria-label="טווח תאריכים">
+        <option value="today">היום</option>
+        <option value="7" selected>7 ימים</option>
+        <option value="30">30 ימים</option>
+        <option value="all">הכל</option>
+      </select>
+    </div>
+
+    <div id="logList" class="log-list"></div>
+    <p id="logEmpty" class="empty" hidden>אין רשומות בטווח הזה.</p>
+  </section>
+
+</main>
+
+<!-- עריכת רשומה -->
+<dialog id="editDialog" class="sheet" aria-labelledby="editTitle">
+  <h2 id="editTitle" class="card-title"><span>עריכת רשומה</span></h2>
+
+  <div class="field">
+    <label for="editName">שם</label>
+    <input id="editName" type="text">
+  </div>
+
+  <div class="field-row">
+    <div class="field">
+      <label for="editDate">תאריך</label>
+      <input id="editDate" type="date">
+    </div>
+    <div class="field">
+      <label for="editTime">שעה</label>
+      <input id="editTime" type="time">
+    </div>
+  </div>
+
+  <fieldset id="editFoodFields" class="field-group">
+    <legend>כמות</legend>
+    <div class="field-row">
+      <div class="field">
+        <label for="editAmount">כמות</label>
+        <input id="editAmount" type="number" step="any" min="0" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label for="editUnit">יחידה</label>
+        <select id="editUnit"></select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="editMeal">ארוחה</label>
+        <select id="editMeal"></select>
+      </div>
+      <div class="field">
+        <label for="editCalories">קלוריות (לא חובה)</label>
+        <input id="editCalories" type="number" step="any" min="0" inputmode="numeric">
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset id="editWorkoutFields" class="field-group">
+    <legend>מאמץ</legend>
+    <div class="field-row">
+      <div class="field">
+        <label for="editDuration">דקות</label>
+        <input id="editDuration" type="number" step="any" min="0" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label for="editDistance">ק&quot;מ</label>
+        <input id="editDistance" type="number" step="any" min="0" inputmode="decimal">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="editSets">סטים</label>
+        <input id="editSets" type="number" step="1" min="0" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="editReps">חזרות</label>
+        <input id="editReps" type="number" step="1" min="0" inputmode="numeric">
+      </div>
+    </div>
+    <div class="field">
+      <label for="editIntensity">עצימות</label>
+      <select id="editIntensity"></select>
+    </div>
+  </fieldset>
+
+  <div class="field">
+    <label for="editNote">הערה</label>
+    <input id="editNote" type="text">
+  </div>
+
+  <p id="editRaw" class="raw-line"></p>
+
+  <div class="sheet-footer">
+    <button id="editSave" class="primary-btn" type="button">שמירה</button>
+    <button id="editCancel" class="ghost-btn" type="button">ביטול</button>
+    <button id="editDelete" class="danger-btn" type="button">מחיקה</button>
+  </div>
+</dialog>
+
+<!-- נתונים וגיבוי -->
+<dialog id="dataDialog" class="sheet" aria-labelledby="dataTitle">
+  <h2 id="dataTitle" class="card-title"><span>נתונים וגיבוי</span></h2>
+  <p class="dialog-note">הרשומות נשמרות מקומית בדפדפן הזה בלבד, כל אחת עם חותמת זמן מלאה.</p>
+  <div class="data-actions">
+    <button id="btnExportCsv" class="primary-btn" type="button">ייצוא CSV</button>
+    <button id="btnExportJson" class="ghost-btn" type="button">ייצוא JSON</button>
+    <label class="ghost-btn file-btn">
+      ייבוא JSON
+      <input id="importFile" type="file" accept="application/json,.json" hidden>
+    </label>
+    <button id="btnWipe" class="danger-btn" type="button">מחיקת כל הרשומות</button>
+  </div>
+  <p id="dataStats" class="dialog-note"></p>
+  <div class="sheet-footer">
+    <button id="dataClose" class="ghost-btn" type="button">סגירה</button>
+  </div>
+</dialog>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="js/lexicon.js"></script>
+<script src="js/parse.js"></script>
+<script src="js/store.js"></script>
+<script src="js/speech.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

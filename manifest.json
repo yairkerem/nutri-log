@@ -1,0 +1,14 @@
+{
+  "name": "יומן תזונה ואימונים",
+  "short_name": "יומן",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f6f5",
+  "theme_color": "#0f766e",
+  "description": "תיעוד אוכל ואימונים בעברית, כולל הכתבה קולית, כמויות וחותמות זמן.",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

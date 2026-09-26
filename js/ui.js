@@ -1,0 +1,462 @@
+/* בניית התצוגה: יומן, סיכום, כרטיסי השלמה ודיאלוגים. */
+(function (global) {
+  'use strict';
+
+  var L = global.Lexicon;
+
+  function el(id) { return document.getElementById(id); }
+
+  function h(tag, props, children) {
+    var node = document.createElement(tag);
+    if (props) {
+      Object.keys(props).forEach(function (key) {
+        if (key === 'class') node.className = props[key];
+        else if (key === 'text') node.textContent = props[key];
+        else if (key === 'dataset') Object.assign(node.dataset, props[key]);
+        else if (key.slice(0, 2) === 'on') node.addEventListener(key.slice(2).toLowerCase(), props[key]);
+        else if (props[key] !== null && props[key] !== undefined) node.setAttribute(key, props[key]);
+      });
+    }
+    (children || []).forEach(function (child) {
+      if (child == null) return;
+      node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
+    });
+    return node;
+  }
+
+  /* ─────────── עזרי תצוגה ─────────── */
+
+  function formatNum(n) {
+    if (n == null) return '';
+    var rounded = Math.round(n * 100) / 100;
+    return String(rounded);
+  }
+
+  function unitLabel(rec) { return global.Store.labels.unit(rec); }
+
+  function quantityText(rec) {
+    var parts = [];
+    if (rec.type === 'food') {
+      if (rec.amount != null) parts.push(formatNum(rec.amount) + (unitLabel(rec) ? ' ' + unitLabel(rec) : ''));
+      if (rec.calories != null) parts.push(formatNum(rec.calories) + ' קלוריות');
+    } else {
+      if (rec.durationMin != null) parts.push(formatNum(rec.durationMin) + ' דקות');
+      if (rec.distanceKm != null) parts.push(formatNum(rec.distanceKm) + ' ק"מ');
+      if (rec.steps != null) parts.push(rec.steps.toLocaleString('he-IL') + ' צעדים');
+      if (rec.sets != null && rec.reps != null) parts.push(rec.sets + '×' + rec.reps);
+      else if (rec.reps != null) parts.push(rec.reps + ' חזרות');
+      else if (rec.sets != null) parts.push(rec.sets + ' סטים');
+      var intensity = global.Store.labels.intensity(rec);
+      if (intensity) parts.push('עצימות ' + intensity);
+    }
+    return parts.join(' · ');
+  }
+
+  var WEEKDAYS_LONG = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+  var WEEKDAYS_SHORT = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
+
+  function sameDay(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
+  function dayHeading(date) {
+    var today = new Date();
+    var yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    var label = WEEKDAYS_LONG[date.getDay()] + ', ' + date.getDate() + '.' + (date.getMonth() + 1);
+    if (sameDay(date, today)) return 'היום · ' + label;
+    if (sameDay(date, yesterday)) return 'אתמול · ' + label;
+    return label + '.' + String(date.getFullYear()).slice(2);
+  }
+
+  function timeText(ts) { return global.Store.localTime(ts); }
+
+  /* ─────────── תפריטי בחירה ─────────── */
+
+  function fillSelect(select, options, placeholder) {
+    select.textContent = '';
+    if (placeholder != null) select.appendChild(h('option', { value: '', text: placeholder }));
+    options.forEach(function (opt) {
+      select.appendChild(h('option', { value: opt.value, text: opt.label }));
+    });
+  }
+
+  function unitOptions() {
+    return L.UNITS.map(function (unit) { return { value: unit.key, label: unit.plural }; });
+  }
+
+  function mealOptions() {
+    return L.MEALS.map(function (meal) { return { value: meal.key, label: meal.label }; });
+  }
+
+  function intensityOptions() {
+    return L.INTENSITIES.map(function (it) { return { value: it.key, label: it.label }; });
+  }
+
+  /* ─────────── סיכום ─────────── */
+
+  function renderStats(stats) {
+    el('statFood').textContent = stats.food;
+    el('statWorkout').textContent = stats.workout;
+    el('statMinutes').textContent = stats.minutes;
+    el('statDistance').textContent = formatNum(stats.distance);
+  }
+
+  function renderWeek(days) {
+    var max = days.reduce(function (acc, day) { return Math.max(acc, day.stats.minutes); }, 0);
+    var wrap = el('weekBars');
+    wrap.textContent = '';
+    days.forEach(function (day) {
+      var height = max > 0 ? Math.max(3, Math.round(day.stats.minutes / max * 100)) : 3;
+      var bar = h('div', { class: 'bar' + (day.stats.minutes ? ' has-value' : '') }, [
+        h('span', { class: 'bar-fill', style: 'height:' + height + '%' }),
+        h('span', { class: 'bar-label', text: WEEKDAYS_SHORT[day.date.getDay()] })
+      ]);
+      bar.title = day.stats.minutes + ' דקות';
+      wrap.appendChild(bar);
+    });
+  }
+
+  /* ─────────── יומן ─────────── */
+
+  function renderLog(records, onEdit) {
+    var list = el('logList');
+    list.textContent = '';
+    el('logCount').textContent = records.length ? records.length + ' רשומות' : '';
+    el('logEmpty').hidden = records.length > 0;
+
+    var currentKey = null;
+    records.forEach(function (rec) {
+      var date = new Date(rec.ts);
+      var key = date.toDateString();
+      if (key !== currentKey) {
+        currentKey = key;
+        list.appendChild(h('h3', { class: 'day-head', text: dayHeading(date) }));
+      }
+
+      var meal = global.Store.labels.meal(rec);
+      var quantity = quantityText(rec);
+      var details = [];
+      if (quantity) details.push(quantity);
+      if (rec.type === 'food' && meal) details.push('ארוחת ' + meal);
+      if (rec.note) details.push(rec.note);
+
+      var item = h('button', {
+        class: 'entry entry-' + rec.type,
+        type: 'button',
+        'aria-label': 'עריכת ' + rec.name,
+        onclick: function () { onEdit(rec.id); }
+      }, [
+        h('span', { class: 'entry-time', text: timeText(rec.ts) }),
+        h('span', { class: 'entry-icon', 'aria-hidden': 'true', text: rec.type === 'food' ? '🍽️' : '🏃' }),
+        h('span', { class: 'entry-body' }, [
+          h('span', { class: 'entry-name', text: rec.name }),
+          details.length ? h('span', { class: 'entry-meta', text: details.join(' · ') }) : null
+        ]),
+        h('span', { class: 'entry-edit', 'aria-hidden': 'true', text: '✎' })
+      ]);
+      list.appendChild(item);
+    });
+  }
+
+  /* ─────────── פריטים אחרונים ─────────── */
+
+  function renderRecent(records, onPick) {
+    var wrap = el('recentWrap');
+    var holder = el('recentChips');
+    holder.textContent = '';
+    if (!records.length) { wrap.hidden = true; return; }
+    wrap.hidden = false;
+    records.forEach(function (rec) {
+      var quantity = quantityText(rec);
+      holder.appendChild(h('button', {
+        class: 'chip',
+        type: 'button',
+        title: 'תיעוד שוב, עם חותמת הזמן הנוכחית',
+        onclick: function () { onPick(rec.id); }
+      }, [(rec.type === 'food' ? '🍽️ ' : '🏃 ') + rec.name + (quantity ? ' · ' + quantity : '')]));
+    });
+  }
+
+  /* ─────────── כרטיסי השלמה ─────────── */
+
+  function renderDrafts(drafts, actions) {
+    var section = el('draftSection');
+    var list = el('draftList');
+    list.textContent = '';
+    section.hidden = drafts.length === 0;
+    el('draftCount').textContent = drafts.length ? drafts.length + ' ממתינות' : '';
+    if (!drafts.length) return;
+
+    var firstMissing = null;
+
+    drafts.forEach(function (draft) {
+      var needsAmount = draft.type === 'food' && draft.amount == null;
+      var needsEffort = draft.type === 'workout' &&
+        draft.durationMin == null && draft.distanceKm == null &&
+        draft.steps == null && draft.reps == null;
+
+      var card = h('div', { class: 'draft' + (needsAmount || needsEffort ? ' is-missing' : ''), dataset: { id: draft.key } });
+
+      /* שורת סוג ושם */
+      var typeToggle = h('div', { class: 'type-toggle', role: 'group', 'aria-label': 'סוג הרשומה' }, [
+        h('button', {
+          class: 'type-btn' + (draft.type === 'food' ? ' is-active' : ''), type: 'button',
+          onclick: function () { actions.onChange(draft.key, { type: 'food' }); }
+        }, ['אוכל']),
+        h('button', {
+          class: 'type-btn' + (draft.type === 'workout' ? ' is-active' : ''), type: 'button',
+          onclick: function () { actions.onChange(draft.key, { type: 'workout' }); }
+        }, ['אימון'])
+      ]);
+
+      var nameInput = h('input', { class: 'draft-name', type: 'text', value: draft.name, 'aria-label': 'שם' });
+      nameInput.addEventListener('change', function () { actions.onChange(draft.key, { name: nameInput.value }, true); });
+
+      card.appendChild(h('div', { class: 'draft-top' }, [typeToggle, nameInput]));
+
+      if (needsAmount) {
+        card.appendChild(h('p', { class: 'draft-ask', text: 'כמה ' + (draft.name || 'זה') + '? נא להשלים את הכמות.' }));
+      } else if (needsEffort) {
+        card.appendChild(h('p', { class: 'draft-ask', text: 'כמה זמן או איזה מאמץ? נא להשלים דקות, מרחק או חזרות.' }));
+      }
+
+      /* שורת כמות */
+      var fields = h('div', { class: 'draft-fields' });
+
+      if (draft.type === 'food') {
+        var amountInput = h('input', {
+          class: 'num' + (needsAmount ? ' needs' : ''), type: 'number', step: 'any', min: '0',
+          inputmode: 'decimal', placeholder: 'כמות', 'aria-label': 'כמות',
+          value: draft.amount != null ? draft.amount : ''
+        });
+        amountInput.addEventListener('input', function () {
+          actions.onChange(draft.key, { amount: amountInput.value === '' ? null : parseFloat(amountInput.value) }, true);
+        });
+        if (needsAmount && !firstMissing) firstMissing = amountInput;
+
+        var unitSelect = h('select', { class: 'unit', 'aria-label': 'יחידה' });
+        fillSelect(unitSelect, unitOptions());
+        unitSelect.value = draft.unit || 'unit';
+        unitSelect.addEventListener('change', function () {
+          /* לא שקט: החלפת יחידה מרעננת גם את קיצורי הכמות. */
+          actions.onChange(draft.key, { unit: unitSelect.value });
+        });
+
+        fields.appendChild(h('label', { class: 'field-inline' }, [amountInput, unitSelect]));
+
+        var quick = h('div', { class: 'quick' });
+        quickAmounts(draft.unit || 'unit').forEach(function (value) {
+          quick.appendChild(h('button', {
+            class: 'chip chip-mini', type: 'button',
+            onclick: function () { actions.onChange(draft.key, { amount: value }); }
+          }, [formatNum(value)]));
+        });
+        fields.appendChild(quick);
+      } else {
+        fields.appendChild(numField('דקות', draft.durationMin, needsEffort, function (value) {
+          actions.onChange(draft.key, { durationMin: value }, true);
+        }, function (input) { if (needsEffort && !firstMissing) firstMissing = input; }));
+        fields.appendChild(numField('ק"מ', draft.distanceKm, false, function (value) {
+          actions.onChange(draft.key, { distanceKm: value }, true);
+        }));
+        fields.appendChild(numField('סטים', draft.sets, false, function (value) {
+          actions.onChange(draft.key, { sets: value }, true);
+        }));
+        fields.appendChild(numField('חזרות', draft.reps, false, function (value) {
+          actions.onChange(draft.key, { reps: value }, true);
+        }));
+      }
+
+      card.appendChild(fields);
+
+      /* שורת זמן */
+      var date = new Date(draft.ts);
+      var dateInput = h('input', { class: 'date', type: 'date', value: global.Store.localDate(draft.ts), 'aria-label': 'תאריך' });
+      var timeInput = h('input', { class: 'time', type: 'time', value: global.Store.localTime(draft.ts), 'aria-label': 'שעה' });
+      function pushTime() {
+        var next = combineDateTime(dateInput.value, timeInput.value, date);
+        if (next) actions.onChange(draft.key, { ts: next.toISOString() }, true);
+      }
+      dateInput.addEventListener('change', pushTime);
+      timeInput.addEventListener('change', pushTime);
+
+      card.appendChild(h('div', { class: 'draft-time' }, [
+        h('span', { class: 'draft-time-label', text: draft.tsExplicit ? 'זמן מהטקסט:' : 'זמן התיעוד:' }),
+        timeInput, dateInput
+      ]));
+
+      if (draft.raw) card.appendChild(h('p', { class: 'raw-line', text: '"' + draft.raw + '"' }));
+
+      var buttons = [
+        h('button', {
+          class: 'primary-btn small', type: 'button',
+          onclick: function () { actions.onSave(draft.key); }
+        }, ['שמירה'])
+      ];
+      if (needsAmount || needsEffort) {
+        buttons.push(h('button', {
+          class: 'ghost-btn small', type: 'button',
+          onclick: function () { actions.onSave(draft.key, true); }
+        }, ['שמירה ללא כמות']));
+      }
+      buttons.push(h('button', {
+        class: 'danger-btn small', type: 'button',
+        onclick: function () { actions.onDiscard(draft.key); }
+      }, ['הסרה']));
+
+      card.appendChild(h('div', { class: 'draft-actions' }, buttons));
+      list.appendChild(card);
+    });
+
+    if (firstMissing) firstMissing.focus({ preventScroll: true });
+  }
+
+  function numField(label, value, needs, onInput, onCreate) {
+    var input = h('input', {
+      class: 'num' + (needs ? ' needs' : ''), type: 'number', step: 'any', min: '0',
+      inputmode: 'decimal', 'aria-label': label, value: value != null ? value : ''
+    });
+    input.addEventListener('input', function () {
+      onInput(input.value === '' ? null : parseFloat(input.value));
+    });
+    if (onCreate) onCreate(input);
+    return h('label', { class: 'field-inline' }, [h('span', { class: 'inline-label', text: label }), input]);
+  }
+
+  function quickAmounts(unitKey) {
+    if (unitKey === 'g') return [30, 50, 100, 150, 200];
+    if (unitKey === 'ml') return [100, 200, 250, 330, 500];
+    if (unitKey === 'kg' || unitKey === 'l') return [0.25, 0.5, 1, 1.5];
+    return [0.5, 1, 2, 3];
+  }
+
+  function combineDateTime(dateValue, timeValue, fallback) {
+    var parts = (dateValue || '').split('-').map(Number);
+    var clock = (timeValue || '').split(':').map(Number);
+    if (parts.length !== 3 || clock.length < 2 || parts.some(isNaN) || clock.some(isNaN)) return null;
+    var d = new Date(fallback ? fallback.getTime() : Date.now());
+    d.setFullYear(parts[0], parts[1] - 1, parts[2]);
+    d.setHours(clock[0], clock[1], 0, 0);
+    return d;
+  }
+
+  /* ─────────── דיאלוג עריכה ─────────── */
+
+  var editState = { id: null, onSave: null, onDelete: null };
+
+  function initEditDialog(handlers) {
+    fillSelect(el('editUnit'), unitOptions(), 'ללא יחידה');
+    fillSelect(el('editMeal'), mealOptions(), 'ללא ארוחה');
+    fillSelect(el('editIntensity'), intensityOptions(), 'לא צוינה');
+
+    el('editSave').addEventListener('click', function () {
+      var patch = readEditForm();
+      if (!patch) return;
+      handlers.onSave(editState.id, patch);
+      closeDialog(el('editDialog'));
+    });
+    el('editCancel').addEventListener('click', function () { closeDialog(el('editDialog')); });
+    el('editDelete').addEventListener('click', function () {
+      handlers.onDelete(editState.id);
+      closeDialog(el('editDialog'));
+    });
+  }
+
+  function openEdit(rec) {
+    editState.id = rec.id;
+    el('editName').value = rec.name || '';
+    el('editDate').value = global.Store.localDate(rec.ts);
+    el('editTime').value = global.Store.localTime(rec.ts);
+    el('editAmount').value = rec.amount != null ? rec.amount : '';
+    el('editUnit').value = rec.unit || '';
+    el('editMeal').value = rec.meal || '';
+    el('editCalories').value = rec.calories != null ? rec.calories : '';
+    el('editDuration').value = rec.durationMin != null ? rec.durationMin : '';
+    el('editDistance').value = rec.distanceKm != null ? rec.distanceKm : '';
+    el('editSets').value = rec.sets != null ? rec.sets : '';
+    el('editReps').value = rec.reps != null ? rec.reps : '';
+    el('editIntensity').value = rec.intensity || '';
+    el('editNote').value = rec.note || '';
+    el('editRaw').textContent = rec.raw ? 'נרשם מהטקסט: "' + rec.raw + '"' : '';
+    el('editFoodFields').hidden = rec.type !== 'food';
+    el('editWorkoutFields').hidden = rec.type !== 'workout';
+    el('editDialog').dataset.type = rec.type;
+    openDialog(el('editDialog'));
+  }
+
+  function readEditForm() {
+    var name = el('editName').value.trim();
+    if (!name) { el('editName').focus(); return null; }
+    var ts = combineDateTime(el('editDate').value, el('editTime').value, new Date());
+    var type = el('editDialog').dataset.type;
+    var patch = {
+      name: name,
+      ts: (ts || new Date()).toISOString(),
+      note: el('editNote').value.trim()
+    };
+    if (type === 'food') {
+      patch.amount = numOrNull(el('editAmount').value);
+      patch.unit = el('editUnit').value || null;
+      patch.meal = el('editMeal').value || null;
+      patch.calories = numOrNull(el('editCalories').value);
+    } else {
+      patch.durationMin = numOrNull(el('editDuration').value);
+      patch.distanceKm = numOrNull(el('editDistance').value);
+      patch.sets = numOrNull(el('editSets').value);
+      patch.reps = numOrNull(el('editReps').value);
+      patch.intensity = el('editIntensity').value || null;
+    }
+    return patch;
+  }
+
+  function numOrNull(value) {
+    if (value === '' || value == null) return null;
+    var n = parseFloat(value);
+    return isFinite(n) ? n : null;
+  }
+
+  /* ─────────── דיאלוגים והודעות ─────────── */
+
+  function openDialog(dialog) {
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+  }
+
+  function closeDialog(dialog) {
+    if (typeof dialog.close === 'function') dialog.close();
+    else dialog.removeAttribute('open');
+  }
+
+  var toastTimer = null;
+  function toast(message) {
+    var node = el('toast');
+    node.textContent = message;
+    node.hidden = false;
+    node.classList.add('is-visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      node.classList.remove('is-visible');
+      setTimeout(function () { node.hidden = true; }, 250);
+    }, 2600);
+  }
+
+  global.UI = {
+    el: el,
+    h: h,
+    formatNum: formatNum,
+    quantityText: quantityText,
+    dayHeading: dayHeading,
+    renderStats: renderStats,
+    renderWeek: renderWeek,
+    renderLog: renderLog,
+    renderRecent: renderRecent,
+    renderDrafts: renderDrafts,
+    initEditDialog: initEditDialog,
+    openEdit: openEdit,
+    openDialog: openDialog,
+    closeDialog: closeDialog,
+    combineDateTime: combineDateTime,
+    toast: toast
+  };
+})(window);
