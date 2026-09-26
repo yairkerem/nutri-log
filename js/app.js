@@ -404,8 +404,11 @@
         : 'אין עדיין רשומות.';
       prefillCustomRange();
       updateExportSummary();
+      showVersion();
       UI.openDialog(el('dataDialog'));
     });
+
+    el('btnUpdate').addEventListener('click', checkForUpdate);
 
     el('dataClose').addEventListener('click', function () { UI.closeDialog(el('dataDialog')); });
 
@@ -573,6 +576,54 @@
       return 'nutri-log-' + from + '_' + to + '.' + extension;
     }
     return 'nutri-log-all-' + stamp() + '.' + extension;
+  }
+
+  /* ─────────── בדיקת עדכון ─────────── */
+
+  /* מספר הגרסה הוא ה-?v= שבו נטענים קובצי ה-CSS וה-JS, ולכן אין כאן מקור
+     אמת שני שעלול להישאר מאחור. */
+  function currentVersion() {
+    var link = document.querySelector('link[rel=stylesheet]');
+    var match = (link && link.getAttribute('href') || '').match(/v=(\d+)/);
+    return match ? parseInt(match[1], 10) : 0;
+  }
+
+  function showVersion() {
+    el('versionNote').textContent = 'גרסה ' + currentVersion() + ' פועלת כעת.';
+    el('btnUpdate').disabled = false;
+  }
+
+  function checkForUpdate() {
+    var note = el('versionNote');
+    el('btnUpdate').disabled = true;
+    note.textContent = 'בודק…';
+
+    global.fetch('index.html?u=' + Date.now(), { cache: 'no-store' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('status ' + response.status);
+        return response.text();
+      })
+      .then(function (html) {
+        var match = html.match(/css\/style\.css\?v=(\d+)/);
+        if (!match) throw new Error('version not found');
+        var latest = parseInt(match[1], 10);
+
+        if (latest > currentVersion()) {
+          note.textContent = 'נמצאה גרסה חדשה (' + latest + '). טוען אותה…';
+          setTimeout(function () {
+            /* כתובת חדשה מכריחה את הדפדפן להביא את הדף מחדש ולא מהמטמון. */
+            global.location.replace(global.location.pathname + '?u=' + Date.now());
+          }, 700);
+          return;
+        }
+
+        note.textContent = 'גרסה ' + currentVersion() + ' היא העדכנית ביותר.';
+        el('btnUpdate').disabled = false;
+      })
+      .catch(function () {
+        note.textContent = 'לא הצלחתי לבדוק עדכון. צריך חיבור לאינטרנט, ועדכון שפורסם זה עתה עשוי להופיע רק כעבור כעשר דקות.';
+        el('btnUpdate').disabled = false;
+      });
   }
 
   function stamp() {
