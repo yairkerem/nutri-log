@@ -14,7 +14,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Nutri Log">
-<link rel="stylesheet" href="css/style.css?v=19">
+<link rel="stylesheet" href="css/style.css?v=20">
 </head>
 <body>
 
@@ -222,7 +222,11 @@
 <!-- נתונים וגיבוי -->
 <dialog id="dataDialog" class="sheet" aria-labelledby="dataTitle">
   <h2 id="dataTitle" class="card-title"><span>נתונים וגיבוי</span></h2>
+
   <p id="versionNote" class="dialog-note"></p>
+  <div class="data-actions">
+    <button id="btnUpdate" class="primary-btn" type="button">בדיקת עדכון</button>
+  </div>
   <p class="dialog-note">הרשומות נשמרות מקומית בדפדפן הזה בלבד, כל אחת עם חותמת זמן מלאה.</p>
 
   <fieldset class="field-group">
@@ -273,10 +277,11 @@
   </fieldset>
 
   <fieldset class="field-group">
-    <legend>גרסה</legend>
-    <p class="dialog-note">מספר הגרסה והתמיכה מופיעים בראש החלון.</p>
+    <legend>יומן ההכתבה האחרונה</legend>
+    <p class="dialog-note">מה שמנוע ההכתבה מסר בפועל בפעם האחרונה. כשהפיצול או הטקסט יוצאים לא כמו שציפיתם, זה מה שמסביר למה.</p>
+    <textarea id="speechLog" class="diag-log" rows="8" readonly></textarea>
     <div class="data-actions">
-      <button id="btnUpdate" class="ghost-btn" type="button">בדיקת עדכון</button>
+      <button id="btnCopyLog" class="ghost-btn" type="button">העתקת היומן</button>
     </div>
   </fieldset>
 
@@ -288,11 +293,11 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="js/lexicon.js?v=19"></script>
-<script src="js/parse.js?v=19"></script>
-<script src="js/store.js?v=19"></script>
-<script src="js/speech.js?v=19"></script>
-<script src="js/ui.js?v=19"></script>
-<script src="js/app.js?v=19"></script>
+<script src="js/lexicon.js?v=20"></script>
+<script src="js/parse.js?v=20"></script>
+<script src="js/store.js?v=20"></script>
+<script src="js/speech.js?v=20"></script>
+<script src="js/ui.js?v=20"></script>
+<script src="js/app.js?v=20"></script>
 </body>
 </html>

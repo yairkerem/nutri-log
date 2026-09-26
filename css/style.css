@@ -157,22 +157,36 @@ main {
 
 /* ─────────── פס עדכון ─────────── */
 
+/* נצמד לראש המסך ובצבע מלא: עדכון שלא רואים הוא עדכון שלא מתקינים. */
 .update-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--accent);
+  padding: 12px 14px;
+  border: 0;
   border-radius: var(--radius);
-  background: var(--accent-soft);
-  color: var(--text);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: var(--shadow);
 }
 
 .update-bar-text {
   flex: 1;
   min-width: 0;
-  font-size: .88rem;
+  font-size: .92rem;
+  font-weight: 600;
 }
+
+.update-bar .primary-btn {
+  background: #fff;
+  color: var(--accent);
+}
+
+.update-bar .update-bar-close { color: rgba(255, 255, 255, .85); }
+.update-bar .update-bar-close:hover { background: rgba(255, 255, 255, .18); color: #fff; }
 
 .update-bar-close {
   flex: none;
@@ -189,9 +203,28 @@ main {
 .update-bar-close:hover { background: var(--card); color: var(--text); }
 
 .update-bar.is-error {
-  border-color: var(--warn);
+  border: 1px solid var(--warn);
   background: var(--warn-bg);
   color: var(--warn);
+}
+
+.update-bar.is-error .update-bar-close { color: var(--warn); }
+
+.diag-log {
+  width: 100%;
+  min-height: 120px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: .72rem;
+  line-height: 1.45;
+  direction: ltr;
+  text-align: left;
+  white-space: pre;
+  overflow: auto;
 }
 
 /* ─────────── קלט ─────────── */

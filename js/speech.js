@@ -23,6 +23,35 @@
      wanted — האם המשתמש עדיין רוצה להקשיב. */
   var session = { base: '', heard: '', parts: [], wanted: false, segments: [] };
 
+  /* יומן ההכתבה האחרונה. מנוע הכתבה בטלפון אינו ניתן לצפייה מכאן, וכשהפיצול
+     או הטקסט יוצאים לא כמצופה זו הדרך היחידה לדעת מה באמת נמסר. נשמר גם
+     באחסון המקומי, כי אפליקציה במסך הבית נטענת מחדש ומוחקת זיכרון. */
+  var DIAG_KEY = 'nutrilog.speechLog';
+  var DIAG_MAX = 160;
+  var diag = { t0: 0, lines: [] };
+
+  function logLine(what, detail) {
+    var elapsed = diag.t0 ? Date.now() - diag.t0 : 0;
+    diag.lines.push(String(elapsed) + 'ms  ' + what + (detail ? '  ' + detail : ''));
+    if (diag.lines.length > DIAG_MAX) diag.lines.splice(0, diag.lines.length - DIAG_MAX);
+    try { global.localStorage.setItem(DIAG_KEY, diag.lines.join('\n')); } catch (err) { /* אין אחסון */ }
+  }
+
+  function describeResults(event) {
+    var bits = [];
+    for (var i = 0; i < event.results.length; i++) {
+      var result = event.results[i];
+      bits.push('[' + i + (result.isFinal ? ' F' : ' i') + '] ' +
+        JSON.stringify(String((result[0] && result[0].transcript) || '')));
+    }
+    return 'idx=' + event.resultIndex + ' n=' + event.results.length + '  ' + bits.join('  ');
+  }
+
+  function readLog() {
+    if (diag.lines.length) return diag.lines.join('\n');
+    try { return global.localStorage.getItem(DIAG_KEY) || ''; } catch (err) { return ''; }
+  }
+
   var ERRORS = {
     'not-allowed': 'אין הרשאה למיקרופון. יש לאשר גישה בהגדרות הדפדפן ולנסות שוב.',
     'service-not-allowed': 'שירות ההכתבה חסום בדפדפן הזה.',
@@ -113,12 +142,14 @@
 
     rec.onstart = function () {
       listening = true;
+      logLine('onstart');
       if (handlers.onStart) handlers.onStart();
     };
 
     rec.onresult = function (event) {
       /* קוראים בכל פעם את כל הרשימה ולא מוסיפים למה שכבר נאסף: אותה תוצאה
          נמסרת שוב כשהיא מתעדכנת וכשהיא הופכת סופית, וצבירה שלהן היא הכפלה. */
+      logLine('result', describeResults(event));
       var parts = [];
       var interim = '';
 
@@ -132,6 +163,7 @@
 
       session.parts = parts;
       session.heard = partsText(parts);
+      logLine('  parts', JSON.stringify(parts));
       if (handlers.onProgress) {
         handlers.onProgress(joinSpoken(spokenSoFar(), interim));
       }
@@ -140,6 +172,7 @@
     rec.onerror = function (event) {
       var message = ERRORS[event.error];
       if (message === undefined) message = 'ההכתבה נכשלה (' + event.error + ').';
+      logLine('error', event.error);
       /* כל שגיאה מסיימת את ההקשבה, גם שתיקה: אחרת ההפעלה מחדש תרוץ בלולאה. */
       session.wanted = false;
       if (message && handlers.onError) handlers.onError(message, event.error);
@@ -148,6 +181,7 @@
     rec.onend = function () {
       /* נשלח בסוף כל מקטע דיבור. כל עוד המשתמש לא עצר, מקפלים את מה שנשמע
          לתוך הבסיס וממשיכים להקשיב — בלי לדווח על סיום, וכך בלי לשמור רשומה. */
+      logLine('onend', 'wanted=' + session.wanted + ' parts=' + JSON.stringify(session.parts));
       if (session.parts.length) session.segments = session.segments.concat(session.parts);
 
       if (session.wanted) {
@@ -156,6 +190,7 @@
         session.parts = [];
         try {
           rec.start();
+          logLine('restart');
           return;
         } catch (err) { /* לא הצליח להתניע מחדש — מסיימים באמת */ }
       }
@@ -166,6 +201,7 @@
          אנשים מפרידים בין פריטים ברשימה. מי שקורא לנו מחליט מה לעשות בזה. */
       var segments = session.segments.slice();
       session = { base: '', heard: '', parts: [], wanted: false, segments: [] };
+      logLine('final', JSON.stringify(finalText) + '  segments=' + JSON.stringify(segments));
       if (handlers.onEnd) handlers.onEnd(finalText, segments);
     };
 
@@ -181,6 +217,8 @@
     }
 
     session = { base: '', heard: '', parts: [], wanted: true, segments: [] };
+    diag = { t0: Date.now(), lines: [] };
+    logLine('start', 'lang=he-IL continuous=true');
 
     try {
       if (!recognition) recognition = create();
@@ -205,6 +243,9 @@
     joinSpoken: joinSpoken,
     isSupported: isSupported,
     unsupportedReason: unsupportedReason,
+    /* יומן ההכתבה האחרונה, ושורה שהאפליקציה מוסיפה לו על מה שעשתה עם התוצאה. */
+    log: readLog,
+    note: function (what, detail) { logLine(what, detail); },
     isListening: function () { return listening; },
     start: start,
     stop: stop

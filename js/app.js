@@ -200,6 +200,8 @@
         var spoken = Parser.collapseRepeats(text);
         var combined = [voiceBase, spoken].filter(Boolean).join(' ').trim();
         el('entryInput').value = combined;
+        Speech.note('app', 'joined=' + JSON.stringify(combined) +
+          '  records=' + JSON.stringify(Parser.parse(combined, new Date()).map(function (rec) { return rec.name; })));
         if (finalText) {
           el('micStatus').textContent = '';
           submitInput('voice');
@@ -449,10 +451,32 @@
       prefillCustomRange();
       updateExportSummary();
       showVersion();
+      if (el('speechLog')) {
+        el('speechLog').value = Speech.log() || 'אין עדיין יומן. אחרי הכתבה אחת הוא יופיע כאן.';
+      }
       UI.openDialog(el('dataDialog'));
     });
 
     on('btnUpdate', 'click', checkForUpdate);
+
+    on('btnCopyLog', 'click', function () {
+      var box = el('speechLog');
+      box.removeAttribute('readonly');
+      box.focus();
+      box.setSelectionRange(0, box.value.length);
+      var copied = false;
+      try { copied = document.execCommand('copy'); } catch (err) { copied = false; }
+      box.setAttribute('readonly', '');
+      if (!copied && global.navigator.clipboard) {
+        global.navigator.clipboard.writeText(box.value).then(function () {
+          UI.toast('היומן הועתק.');
+        }, function () {
+          UI.toast('לא הצלחתי להעתיק — אפשר לסמן ולהעתיק ידנית.');
+        });
+        return;
+      }
+      UI.toast(copied ? 'היומן הועתק.' : 'לא הצלחתי להעתיק — אפשר לסמן ולהעתיק ידנית.');
+    });
 
     on('dataClose', 'click', function () { UI.closeDialog(el('dataDialog')); });
 
