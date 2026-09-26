@@ -488,7 +488,21 @@
       } catch (err) { /* ממשיכים למסלול הפשוט */ }
     }
     dialog.classList.add('is-fallback');
+    addFallbackClose(dialog);
     dialog.setAttribute('open', '');
+    /* החלון נפתח מלמעלה, כדי שהכפתור הראשון יהיה גלוי מיד. */
+    dialog.scrollTop = 0;
+  }
+
+  function addFallbackClose(dialog) {
+    if (dialog.querySelector('.sheet-close')) return;
+    var button = h('button', {
+      class: 'sheet-close',
+      type: 'button',
+      'aria-label': 'סגירה',
+      onclick: function () { closeDialog(dialog); }
+    }, ['×']);
+    dialog.insertBefore(button, dialog.firstChild);
   }
 
   function closeDialog(dialog) {

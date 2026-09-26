@@ -659,18 +659,44 @@ input.num.needs {
    תמיד. שתי השורות הבאות נותנות לו התנהגות של חלון גם שם. */
 .sheet:not([open]) { display: none; }
 
+/* במסלול הזה לא מנסים למרכז חלון צף: מסך מלא שנגלל, בלי חישובי מיקום
+   ובלי גלילה בתוך אלמנט קבוע, שני דברים ששבורים בדפדפנים ישנים. */
 .sheet.is-fallback[open] {
   position: fixed;
-  inset-block-start: 50%;
-  inset-inline-start: 50%;
-  transform: translate(50%, -50%);
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
   margin: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 16px;
+  padding-top: 8px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   z-index: 60;
-  /* צל ענק במקום ::backdrop, שאינו קיים במסלול הזה */
-  box-shadow: 0 0 0 100vmax rgba(10, 18, 17, .5), var(--shadow);
 }
 
-[dir="ltr"] .sheet.is-fallback[open] { transform: translate(-50%, -50%); }
+/* כפתור סגירה שנוסף רק במסלול הזה, בראש התוכן כדי שתמיד יהיה בהישג יד. */
+.sheet-close {
+  display: none;
+  margin: 0 0 8px auto;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sheet.is-fallback .sheet-close { display: block; }
 
 .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; flex: 1; }
 
