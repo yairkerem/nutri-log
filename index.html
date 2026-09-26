@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0f766e">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/style.css?v=1">
+<link rel="stylesheet" href="css/style.css?v=2">
 </head>
 <body>
 
@@ -203,15 +203,54 @@
 <dialog id="dataDialog" class="sheet" aria-labelledby="dataTitle">
   <h2 id="dataTitle" class="card-title"><span>נתונים וגיבוי</span></h2>
   <p class="dialog-note">הרשומות נשמרות מקומית בדפדפן הזה בלבד, כל אחת עם חותמת זמן מלאה.</p>
-  <div class="data-actions">
-    <button id="btnExportCsv" class="primary-btn" type="button">ייצוא CSV</button>
-    <button id="btnExportJson" class="ghost-btn" type="button">ייצוא JSON</button>
-    <label class="ghost-btn file-btn">
-      ייבוא JSON
-      <input id="importFile" type="file" accept="application/json,.json" hidden>
-    </label>
-    <button id="btnWipe" class="danger-btn" type="button">מחיקת כל הרשומות</button>
-  </div>
+
+  <fieldset class="field-group">
+    <legend>שיתוף וייצוא</legend>
+
+    <div class="field">
+      <label for="exportRange">טווח</label>
+      <select id="exportRange">
+        <option value="7">7 הימים האחרונים</option>
+        <option value="14" selected>14 הימים האחרונים</option>
+        <option value="30">30 הימים האחרונים</option>
+        <option value="all">כל הרשומות</option>
+        <option value="custom">טווח מותאם</option>
+      </select>
+    </div>
+
+    <div id="customRange" class="field-row" hidden>
+      <div class="field">
+        <label for="exportFrom">מתאריך</label>
+        <input id="exportFrom" type="date">
+      </div>
+      <div class="field">
+        <label for="exportTo">עד תאריך</label>
+        <input id="exportTo" type="date">
+      </div>
+    </div>
+
+    <p id="exportCount" class="dialog-note"></p>
+
+    <div class="data-actions">
+      <button id="btnShare" class="primary-btn" type="button">שיתוף הקובץ</button>
+      <button id="btnExportCsv" class="ghost-btn" type="button">ייצוא CSV</button>
+    </div>
+    <p id="shareNote" class="dialog-note"></p>
+  </fieldset>
+
+  <fieldset class="field-group">
+    <legend>גיבוי מלא</legend>
+    <p class="dialog-note">גיבוי JSON כולל תמיד את כל הרשומות, והוא גם הדרך להעביר אותן למכשיר אחר.</p>
+    <div class="data-actions">
+      <button id="btnExportJson" class="ghost-btn" type="button">ייצוא JSON</button>
+      <label class="ghost-btn file-btn">
+        ייבוא JSON
+        <input id="importFile" type="file" accept="application/json,.json" hidden>
+      </label>
+      <button id="btnWipe" class="danger-btn" type="button">מחיקת כל הרשומות</button>
+    </div>
+  </fieldset>
+
   <p id="dataStats" class="dialog-note"></p>
   <div class="sheet-footer">
     <button id="dataClose" class="ghost-btn" type="button">סגירה</button>
@@ -220,11 +259,11 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="js/lexicon.js?v=1"></script>
-<script src="js/parse.js?v=1"></script>
-<script src="js/store.js?v=1"></script>
-<script src="js/speech.js?v=1"></script>
-<script src="js/ui.js?v=1"></script>
-<script src="js/app.js?v=1"></script>
+<script src="js/lexicon.js?v=2"></script>
+<script src="js/parse.js?v=2"></script>
+<script src="js/store.js?v=2"></script>
+<script src="js/speech.js?v=2"></script>
+<script src="js/ui.js?v=2"></script>
+<script src="js/app.js?v=2"></script>
 </body>
 </html>

@@ -309,17 +309,30 @@
       el('dataStats').textContent = records.length
         ? 'סך הכול ' + records.length + ' רשומות, החל מ־' + oldest + '.'
         : 'אין עדיין רשומות.';
+      prefillCustomRange();
+      updateExportSummary();
       UI.openDialog(el('dataDialog'));
     });
 
     el('dataClose').addEventListener('click', function () { UI.closeDialog(el('dataDialog')); });
 
+    el('exportRange').addEventListener('change', function () {
+      el('customRange').hidden = el('exportRange').value !== 'custom';
+      updateExportSummary();
+    });
+    el('exportFrom').addEventListener('change', updateExportSummary);
+    el('exportTo').addEventListener('change', updateExportSummary);
+
+    el('btnShare').addEventListener('click', shareSelection);
+
     el('btnExportCsv').addEventListener('click', function () {
-      download(Store.toCsv(), 'diet-diary-' + stamp() + '.csv', 'text/csv;charset=utf-8');
+      var selection = exportSelection();
+      if (!selection.records.length) { UI.toast('אין רשומות בטווח הזה.'); return; }
+      download(Store.toCsv(selection.records), exportName(selection, 'csv'), 'text/csv;charset=utf-8');
     });
 
     el('btnExportJson').addEventListener('click', function () {
-      download(Store.toJson(), 'diet-diary-' + stamp() + '.json', 'application/json');
+      download(Store.toJson(), 'diet-diary-backup-' + stamp() + '.json', 'application/json');
     });
 
     el('importFile').addEventListener('change', function (event) {
@@ -330,6 +343,7 @@
         try {
           var count = Store.fromJson(String(reader.result));
           UI.toast(count ? 'יובאו ' + count + ' רשומות.' : 'לא נוספו רשומות חדשות.');
+          updateExportSummary();
         } catch (err) {
           UI.toast('הייבוא נכשל: קובץ לא תקין.');
         }
@@ -344,6 +358,128 @@
       UI.closeDialog(el('dataDialog'));
       UI.toast('כל הרשומות נמחקו.');
     });
+  }
+
+  /* ─────────── בחירת טווח לייצוא ולשיתוף ─────────── */
+
+  function startOfToday() {
+    var d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  function prefillCustomRange() {
+    if (!el('exportTo').value) el('exportTo').value = Store.localDate(new Date());
+    if (!el('exportFrom').value) {
+      var from = startOfToday();
+      from.setDate(from.getDate() - 13);
+      el('exportFrom').value = Store.localDate(from);
+    }
+  }
+
+  function dateFromInput(value) {
+    return value ? new Date(value + 'T00:00:00') : null;
+  }
+
+  function exportSelection() {
+    var value = el('exportRange').value;
+    if (value === 'all') {
+      return { records: Store.all(), from: null, to: null, invalid: false };
+    }
+    if (value === 'custom') {
+      var from = dateFromInput(el('exportFrom').value);
+      var to = dateFromInput(el('exportTo').value);
+      if (from && to && from > to) return { records: [], from: from, to: to, invalid: true };
+      return { records: Store.inRange(from, to), from: from, to: to, invalid: false };
+    }
+    var days = parseInt(value, 10);
+    var start = startOfToday();
+    start.setDate(start.getDate() - (days - 1));
+    return { records: Store.inRange(start, new Date()), from: start, to: new Date(), invalid: false };
+  }
+
+  /* בטקסט מוצג תאריך עברי קצר; בשם הקובץ נשאר ISO, כדי שקבצים יסתדרו לפי סדר. */
+  function shortDate(date) {
+    var d = new Date(date);
+    return d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
+  }
+
+  function rangeText(selection) {
+    if (selection.from && selection.to) return 'מ־' + shortDate(selection.from) + ' עד ' + shortDate(selection.to);
+    if (selection.from) return 'מ־' + shortDate(selection.from) + ' ואילך';
+    if (selection.to) return 'עד ' + shortDate(selection.to);
+    return 'כל הרשומות';
+  }
+
+  function updateExportSummary() {
+    var selection = exportSelection();
+    var note = el('exportCount');
+
+    if (selection.invalid) {
+      note.textContent = 'תאריך ההתחלה מאוחר מתאריך הסיום.';
+    } else if (!selection.records.length) {
+      note.textContent = 'אין רשומות בטווח הזה.';
+    } else {
+      note.textContent = selection.records.length + ' רשומות · ' + rangeText(selection);
+    }
+
+    var usable = !selection.invalid && selection.records.length > 0;
+    el('btnExportCsv').disabled = !usable;
+    el('btnShare').disabled = !usable || !canShareFiles();
+    el('shareNote').textContent = canShareFiles()
+      ? 'שיתוף פותח את תפריט השיתוף של המכשיר — ווטסאפ, מייל או כל יישום אחר.'
+      : 'הדפדפן הזה לא תומך בשיתוף קבצים ישירות. אפשר לייצא CSV ולצרף אותו להודעה.';
+  }
+
+  /* בדיקה אחת לדפדפן: האם אפשר לשתף קובץ דרך תפריט השיתוף של המכשיר. */
+  var shareSupport = null;
+  function canShareFiles() {
+    if (shareSupport !== null) return shareSupport;
+    try {
+      var probe = new File(['test'], 'test.csv', { type: 'text/csv' });
+      shareSupport = !!(global.navigator.share && global.navigator.canShare &&
+        global.navigator.canShare({ files: [probe] }));
+    } catch (err) {
+      shareSupport = false;
+    }
+    return shareSupport;
+  }
+
+  function shareSelection() {
+    var selection = exportSelection();
+    if (!selection.records.length) { UI.toast('אין רשומות בטווח הזה.'); return; }
+
+    var filename = exportName(selection, 'csv');
+    var csv = Store.toCsv(selection.records);
+
+    if (!canShareFiles()) {
+      download(csv, filename, 'text/csv;charset=utf-8');
+      UI.toast('הדפדפן לא תומך בשיתוף ישיר — הקובץ ירד ואפשר לצרף אותו.');
+      return;
+    }
+
+    var file = new File([csv], filename, { type: 'text/csv' });
+    global.navigator.share({
+      files: [file],
+      title: 'יומן תזונה ואימונים',
+      text: 'רשומות יומן תזונה ואימונים, ' + rangeText(selection) + '.'
+    }).then(function () {
+      UI.toast('הקובץ שותף.');
+    }).catch(function (err) {
+      /* סגירת תפריט השיתוף אינה שגיאה. */
+      if (err && err.name === 'AbortError') return;
+      download(csv, filename, 'text/csv;charset=utf-8');
+      UI.toast('השיתוף לא הושלם — הקובץ ירד למכשיר.');
+    });
+  }
+
+  function exportName(selection, extension) {
+    if (selection.from || selection.to) {
+      var from = selection.from ? Store.localDate(selection.from) : 'start';
+      var to = Store.localDate(selection.to || new Date());
+      return 'diet-diary-' + from + '_' + to + '.' + extension;
+    }
+    return 'diet-diary-all-' + stamp() + '.' + extension;
   }
 
   function stamp() {

@@ -230,6 +230,12 @@ textarea#entryInput:focus, input:focus, select:focus { outline: 2px solid var(--
 .danger-btn { background: transparent; color: var(--danger); border-color: var(--line); }
 .danger-btn:hover { background: var(--bg); }
 
+.primary-btn:disabled, .ghost-btn:disabled, .danger-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  filter: none;
+}
+
 .primary-btn.small, .ghost-btn.small, .danger-btn.small {
   padding: 6px 11px;
   font-size: .85rem;

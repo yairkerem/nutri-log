@@ -174,6 +174,22 @@
     });
   }
 
+  /* רשומות בין שני תאריכים, כולל שני הקצוות. null פירושו בלי הגבלה. */
+  function inRange(from, to) {
+    var start = from ? startOfDay(from) : null;
+    var end = null;
+    if (to) {
+      end = startOfDay(to);
+      end.setDate(end.getDate() + 1);
+    }
+    return records.filter(function (rec) {
+      var t = new Date(rec.ts);
+      if (start && t < start) return false;
+      if (end && t >= end) return false;
+      return true;
+    });
+  }
+
   function dayStats(date) {
     var from = startOfDay(date || new Date());
     var to = new Date(from);
@@ -284,9 +300,11 @@
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   }
 
-  function toCsv() {
+  /* ברירת המחדל היא כל הרשומות; אפשר להעביר רשימה מסוננת. הסדר כרונולוגי. */
+  function toCsv(list) {
+    var rows = (list || all()).slice().sort(function (a, b) { return new Date(a.ts) - new Date(b.ts); });
     var lines = [CSV_COLUMNS.map(function (col) { return csvCell(col[0]); }).join(',')];
-    all().slice().reverse().forEach(function (rec) {
+    rows.forEach(function (rec) {
       lines.push(CSV_COLUMNS.map(function (col) { return csvCell(col[1](rec)); }).join(','));
     });
     return '﻿' + lines.join('\r\n');
@@ -323,6 +341,7 @@
     wipe: wipe,
     replaceAll: replaceAll,
     query: query,
+    inRange: inRange,
     dayStats: dayStats,
     lastDays: lastDays,
     recent: recent,
