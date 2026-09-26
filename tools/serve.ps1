@@ -50,21 +50,31 @@ while ($listener.IsListening) {
     # לא מגישים קבצים שמחוץ לתיקיית הפרויקט.
     $inside = $candidate.StartsWith($rootFull, [System.StringComparison]::OrdinalIgnoreCase)
 
-    if ($inside -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
-        $extension = [System.IO.Path]::GetExtension($candidate).ToLowerInvariant()
-        $contentType = $mime[$extension]
-        if (-not $contentType) { $contentType = 'application/octet-stream' }
+    # בקשה אחת שנכשלת לא אמורה להפיל את השרת.
+    try {
+        if ($inside -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+            $extension = [System.IO.Path]::GetExtension($candidate).ToLowerInvariant()
+            $contentType = $mime[$extension]
+            if (-not $contentType) { $contentType = 'application/octet-stream' }
 
-        $bytes = [System.IO.File]::ReadAllBytes($candidate)
-        $context.Response.ContentType = $contentType
-        $context.Response.Headers.Add('Cache-Control', 'no-store')
-        $context.Response.ContentLength64 = $bytes.Length
-        $context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
-        Write-Host ("200 " + $requestPath)
-    } else {
-        $context.Response.StatusCode = 404
-        Write-Host ("404 " + $requestPath) -ForegroundColor DarkYellow
+            $bytes = [System.IO.File]::ReadAllBytes($candidate)
+            $context.Response.ContentType = $contentType
+            $context.Response.Headers.Add('Cache-Control', 'no-store')
+            $context.Response.ContentLength64 = $bytes.Length
+
+            # ל-HEAD מחזירים כותרות בלבד; כתיבת גוף תזרוק חריגה.
+            if ($context.Request.HttpMethod -ne 'HEAD') {
+                $context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
+            }
+            Write-Host ("200 " + $requestPath)
+        } else {
+            $context.Response.StatusCode = 404
+            Write-Host ("404 " + $requestPath) -ForegroundColor DarkYellow
+        }
+    } catch {
+        Write-Host ("500 " + $requestPath + " - " + $_.Exception.Message) -ForegroundColor Red
+        try { $context.Response.StatusCode = 500 } catch { }
     }
 
-    $context.Response.Close()
+    try { $context.Response.Close() } catch { }
 }

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>יצירת קובצי האייקון</title>
+<style>
+  body { font-family: "Segoe UI", Arial, sans-serif; margin: 24px; background: #f4f6f5; color: #14211f; }
+  h1 { font-size: 1.1rem; }
+  p { max-width: 60ch; line-height: 1.6; }
+  button { font: inherit; font-weight: 600; padding: 9px 16px; border: 0; border-radius: 10px; background: #0f766e; color: #fff; cursor: pointer; }
+  .grid { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 20px; }
+  figure { margin: 0; text-align: center; font-size: .78rem; }
+  figure img { display: block; background: #cbd5e1; border-radius: 12px; }
+  code { background: #e6eceb; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>יצירת קובצי האייקון</h1>
+<p>
+  מקור האמת הוא קובצי ה-SVG שבשורש הפרויקט: <code>icon.svg</code> (פינות מעוגלות),
+  <code>icon-maskable.svg</code> (רקע מלא, סמל מוקטן לאזור הבטוח של אנדרואיד) ו-<code>icon-apple.svg</code> (רקע מלא ל-iOS).
+  אחרי שינוי ב-SVG יש ליצור כאן מחדש את קובצי ה-PNG ולשמור אותם בשורש הפרויקט, בשמות שמופיעים מתחת לכל תצוגה.
+</p>
+<p>יש להריץ דרך השרת המקומי (<code>tools\serve.ps1</code>) ולפתוח <code>http://localhost:8123/tools/icons.html</code>.</p>
+
+<button id="download" type="button">הורדת כל הקבצים</button>
+
+<div id="grid" class="grid"></div>
+
+<script>
+var JOBS = [
+  { src: '../icon.svg', size: 192, name: 'icon-192.png' },
+  { src: '../icon.svg', size: 512, name: 'icon-512.png' },
+  { src: '../icon-maskable.svg', size: 512, name: 'icon-maskable-512.png' },
+  { src: '../icon-apple.svg', size: 180, name: 'apple-touch-icon.png' },
+  { src: '../icon.svg', size: 32, name: 'favicon-32.png' }
+];
+
+function render(job) {
+  return new Promise(function (resolve, reject) {
+    var img = new Image();
+    img.onload = function () {
+      var canvas = document.createElement('canvas');
+      canvas.width = job.size;
+      canvas.height = job.size;
+      canvas.getContext('2d').drawImage(img, 0, 0, job.size, job.size);
+      canvas.toBlob(function (blob) { resolve({ job: job, blob: blob, canvas: canvas }); }, 'image/png');
+    };
+    img.onerror = reject;
+    img.src = job.src + '?r=' + Math.random();
+  });
+}
+
+Promise.all(JOBS.map(render)).then(function (results) {
+  var grid = document.getElementById('grid');
+  results.forEach(function (result) {
+    var figure = document.createElement('figure');
+    var img = new Image();
+    img.src = result.canvas.toDataURL('image/png');
+    img.style.width = Math.min(160, result.job.size) + 'px';
+    figure.appendChild(img);
+    var caption = document.createElement('figcaption');
+    caption.textContent = result.job.name + ' · ' + Math.round(result.blob.size / 1024) + ' KB';
+    figure.appendChild(caption);
+    grid.appendChild(figure);
+  });
+
+  document.getElementById('download').addEventListener('click', function () {
+    results.forEach(function (result, index) {
+      setTimeout(function () {
+        var url = URL.createObjectURL(result.blob);
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = result.job.name;
+        link.click();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      }, index * 300);
+    });
+  });
+});
+</script>
+</body>
+</html>

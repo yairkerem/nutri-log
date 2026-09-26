@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192" role="img" aria-label="יומן תזונה ואימונים">
+  <!-- גרסה ל-iOS: רקע מלא בלי פינות מעוגלות, כי iOS מעגל את הפינות בעצמו. -->
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#15a89b"/>
@@ -22,15 +23,13 @@
     </g>
   </defs>
 
-  <rect width="192" height="192" rx="42" fill="url(#bg)"/>
+  <rect width="192" height="192" fill="url(#bg)"/>
 
-  <g transform="translate(96.5 94) scale(0.92)">
-    <!-- מזלג מאחור: הראש נשאר שלם, ורק הידית נחתכת -->
+  <g transform="translate(96.5 94) scale(0.86)">
     <g transform="translate(0 -6) rotate(18)" fill="#ffffff">
       <use href="#fork"/>
     </g>
 
-    <!-- משקולת מלפנים, שלמה, עם צללית שמפרידה אותה מהידית -->
     <g transform="translate(0 38) rotate(-18)">
       <use href="#dumbbell" fill="#0c645d" stroke="#0c645d" stroke-width="11" stroke-linejoin="round"/>
       <use href="#dumbbell" fill="#ffffff"/>
