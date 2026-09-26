@@ -184,6 +184,12 @@ main {
 
 .update-bar-close:hover { background: var(--card); color: var(--text); }
 
+.update-bar.is-error {
+  border-color: var(--warn);
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
 /* ─────────── קלט ─────────── */
 
 .capture-row {

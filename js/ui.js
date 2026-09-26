@@ -6,6 +6,18 @@
 
   function el(id) { return document.getElementById(id); }
 
+  /* חיווט סובלני: אלמנט חסר (למשל דף ישן שנשאר במטמון לצד קוד חדש) מדלג על
+     התכונה הזו בלבד, במקום להפיל את כל האתחול. */
+  function on(id, type, handler) {
+    var node = el(id);
+    if (!node) {
+      if (global.console && console.warn) console.warn('Nutri Log: חסר אלמנט #' + id);
+      return false;
+    }
+    node.addEventListener(type, handler);
+    return true;
+  }
+
   function h(tag, props, children) {
     var node = document.createElement(tag);
     if (props) {
@@ -365,19 +377,19 @@
     fillSelect(el('editMeal'), mealOptions(), 'ללא ארוחה');
     fillSelect(el('editIntensity'), intensityOptions(), 'לא צוינה');
 
-    el('editSave').addEventListener('click', function () {
+    on('editSave', 'click', function () {
       var patch = readEditForm();
       if (!patch) return;
       handlers.onSave(editState.id, patch);
       closeDialog(el('editDialog'));
     });
-    el('editCancel').addEventListener('click', function () { closeDialog(el('editDialog')); });
-    el('editDelete').addEventListener('click', function () {
+    on('editCancel', 'click', function () { closeDialog(el('editDialog')); });
+    on('editDelete', 'click', function () {
       handlers.onDelete(editState.id);
       closeDialog(el('editDialog'));
     });
 
-    el('editSplit').addEventListener('click', function () {
+    on('editSplit', 'click', function () {
       var patch = readEditForm();
       if (!patch) return;
       handlers.onSplit(editState.id, patch);
@@ -385,17 +397,25 @@
     });
 
     /* הכפתור פעיל רק כשיש באמת מה לפצל, ומתעדכן תוך כדי עריכת השם. */
-    el('editName').addEventListener('input', refreshSplitState);
+    on('editName', 'input', refreshSplitState);
   }
 
   function refreshSplitState() {
-    el('editSplit').disabled = !canSplitText(el('editName').value, el('editDialog').dataset.type);
+    var button = el('editSplit');
+    if (!button) return;
+    button.disabled = !canSplitText(el('editName').value, el('editDialog').dataset.type);
   }
 
   function canSplitText(text, type) {
     var source = (text || '').trim();
     if (!source) return false;
-    var parts = global.Parser.parse(source, new Date(), { splitWith: true });
+    var parts;
+    /* כשלון בניתוח לא אמור למנוע פתיחה של חלון העריכה. */
+    try {
+      parts = global.Parser.parse(source, new Date(), { splitWith: true });
+    } catch (err) {
+      return false;
+    }
     if (parts.length < 2) return false;
     /* פיצול שכל חלקיו מאבדים את שמם אינו פיצול שימושי. */
     return parts.every(function (part) { return part.name && part.name !== (type === 'workout' ? 'אימון' : 'אוכל'); });
@@ -482,6 +502,7 @@
 
   global.UI = {
     el: el,
+    on: on,
     h: h,
     formatNum: formatNum,
     quantityText: quantityText,

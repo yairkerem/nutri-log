@@ -3,6 +3,7 @@
   'use strict';
 
   var el = UI.el;
+  var on = UI.on;
   var DISMISSED_UPDATE_KEY = 'nutrilog.dismissedUpdate';
   var drafts = [];
   var draftSeq = 0;
@@ -11,18 +12,53 @@
 
   /* ─────────── הפעלה ─────────── */
 
+  /* כל שלב אתחול עומד בפני עצמו: תקלה באחד מהם לא תשאיר את שאר האפליקציה
+     בלי חיווט, והשגיאה מדווחת על המסך כדי שאפשר יהיה לאתר אותה גם בטלפון. */
+  function step(name, fn) {
+    try {
+      fn();
+    } catch (err) {
+      reportError(name, err);
+    }
+  }
+
   function init() {
-    Store.load();
-    UI.initEditDialog({ onSave: saveEdit, onDelete: deleteRecord, onSplit: splitRecord });
-    wireCapture();
-    wireFilters();
-    wireData();
-    setTodayLabel();
-    setMicAvailability();
-    Store.onChange(refresh);
-    refresh();
+    global.addEventListener('error', function (event) {
+      reportError('שגיאה', event.error || new Error(event.message));
+    });
+
+    step('טעינת הרשומות', function () { Store.load(); });
+    step('חלון העריכה', function () {
+      UI.initEditDialog({ onSave: saveEdit, onDelete: deleteRecord, onSplit: splitRecord });
+    });
+    step('שורת הקלט', wireCapture);
+    step('הסינון', wireFilters);
+    step('הנתונים', wireData);
+    step('התאריך', setTodayLabel);
+    step('המיקרופון', setMicAvailability);
+    step('היומן', function () {
+      Store.onChange(refresh);
+      refresh();
+    });
     /* אחרי שהדף צויר, כדי לא להתחרות בטעינה הראשונה. */
     setTimeout(checkForUpdateQuietly, 1200);
+  }
+
+  var reportedError = false;
+  function reportError(where, err) {
+    if (global.console && console.error) console.error('Nutri Log / ' + where, err);
+    if (reportedError) return;
+    reportedError = true;
+    var bar = el('updateBar');
+    var text = el('updateBarText');
+    if (!bar || !text) return;
+    text.textContent = 'תקלה ב' + where + ': ' + ((err && err.message) || err);
+    bar.classList.add('is-error');
+    bar.hidden = false;
+    if (el('updateBarBtn')) el('updateBarBtn').hidden = true;
+    if (el('updateBarClose')) {
+      el('updateBarClose').onclick = function () { bar.hidden = true; };
+    }
   }
 
   function setTodayLabel() {
@@ -41,9 +77,9 @@
   /* ─────────── קלט ─────────── */
 
   function wireCapture() {
-    el('btnAdd').addEventListener('click', function () { submitInput('text'); });
+    on('btnAdd', 'click', function () { submitInput('text'); });
 
-    el('entryInput').addEventListener('keydown', function (event) {
+    on('entryInput', 'keydown', function (event) {
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
         submitInput('text');
@@ -57,9 +93,9 @@
       });
     });
 
-    el('btnMic').addEventListener('click', toggleMic);
-    el('btnSaveAllDrafts').addEventListener('click', saveAllDrafts);
-    el('btnClearDrafts').addEventListener('click', function () {
+    on('btnMic', 'click', toggleMic);
+    on('btnSaveAllDrafts', 'click', saveAllDrafts);
+    on('btnClearDrafts', 'click', function () {
       drafts = [];
       renderDrafts();
     });
@@ -300,12 +336,12 @@
       });
     });
 
-    el('searchInput').addEventListener('input', function () {
+    on('searchInput', 'input', function () {
       filters.search = el('searchInput').value;
       refresh();
     });
 
-    el('rangeSelect').addEventListener('change', function () {
+    on('rangeSelect', 'change', function () {
       filters.range = el('rangeSelect').value;
       refresh();
     });
@@ -399,7 +435,7 @@
   /* ─────────── נתונים וגיבוי ─────────── */
 
   function wireData() {
-    el('btnData').addEventListener('click', function () {
+    on('btnData', 'click', function () {
       var records = Store.all();
       var oldest = records.length ? Store.localDate(records[records.length - 1].ts) : null;
       el('dataStats').textContent = records.length
@@ -411,30 +447,30 @@
       UI.openDialog(el('dataDialog'));
     });
 
-    el('btnUpdate').addEventListener('click', checkForUpdate);
+    on('btnUpdate', 'click', checkForUpdate);
 
-    el('dataClose').addEventListener('click', function () { UI.closeDialog(el('dataDialog')); });
+    on('dataClose', 'click', function () { UI.closeDialog(el('dataDialog')); });
 
-    el('exportRange').addEventListener('change', function () {
+    on('exportRange', 'change', function () {
       el('customRange').hidden = el('exportRange').value !== 'custom';
       updateExportSummary();
     });
-    el('exportFrom').addEventListener('change', updateExportSummary);
-    el('exportTo').addEventListener('change', updateExportSummary);
+    on('exportFrom', 'change', updateExportSummary);
+    on('exportTo', 'change', updateExportSummary);
 
-    el('btnShare').addEventListener('click', shareSelection);
+    on('btnShare', 'click', shareSelection);
 
-    el('btnExportCsv').addEventListener('click', function () {
+    on('btnExportCsv', 'click', function () {
       var selection = exportSelection();
       if (!selection.records.length) { UI.toast('אין רשומות בטווח הזה.'); return; }
       download(Store.toCsv(selection.records), exportName(selection, 'csv'), 'text/csv;charset=utf-8');
     });
 
-    el('btnExportJson').addEventListener('click', function () {
+    on('btnExportJson', 'click', function () {
       download(Store.toJson(), 'nutri-log-backup-' + stamp() + '.json', 'application/json');
     });
 
-    el('importFile').addEventListener('change', function (event) {
+    on('importFile', 'change', function (event) {
       var file = event.target.files && event.target.files[0];
       if (!file) return;
       var reader = new FileReader();
@@ -451,7 +487,7 @@
       event.target.value = '';
     });
 
-    el('btnWipe').addEventListener('click', function () {
+    on('btnWipe', 'click', function () {
       if (!global.confirm('למחוק את כל הרשומות? הפעולה אינה ניתנת לשחזור.')) return;
       Store.wipe();
       UI.closeDialog(el('dataDialog'));
