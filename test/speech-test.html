@@ -57,9 +57,25 @@ FakeRecognition.prototype.abort = function () {};
 window.SpeechRecognition = FakeRecognition;
 </script>
 
-<script src="../js/lexicon.js"></script>
-<script src="../js/parse.js"></script>
-<script src="../js/speech.js"></script>
+<script>
+/* קוד האפליקציה נטען עם מניעת מטמון. בלי זה הבדיקות עלולות לרוץ על גרסה
+   ישנה ששמורה בדפדפן או ב-CDN, ולהצהיר על מצב שאינו המצב האמיתי. */
+function loadScript(src) {
+  return new Promise(function (resolve, reject) {
+    var tag = document.createElement('script');
+    tag.src = src + '?r=' + Date.now() + Math.random();
+    tag.onload = resolve;
+    tag.onerror = function () { reject(new Error('נכשלה טעינת ' + src)); };
+    document.head.appendChild(tag);
+  });
+}
+
+loadScript('../js/lexicon.js')
+  .then(function () { return loadScript('../js/parse.js'); })
+  .then(function () { return loadScript('../js/speech.js'); })
+  .then(function () { runTests(); })
+  .catch(function (err) { document.getElementById('summary').textContent = String(err.message || err); });
+</script>
 
 <script>
 var SENTENCE = 'אכלתי סלט עם עגבניות';
@@ -124,7 +140,9 @@ function runCase(testCase) {
   });
 }
 
-(function next(index, passed) {
+function runTests() { next(0, 0); }
+
+function next(index, passed) {
   if (index >= CASES.length) {
     document.getElementById('summary').textContent = 'עברו ' + passed + ' מתוך ' + CASES.length + ' בדיקות';
     return;
@@ -148,7 +166,7 @@ function runCase(testCase) {
     document.getElementById('rows').appendChild(tr);
     next(index + 1, passed + (ok ? 1 : 0));
   });
-})(0, 0);
+}
 </script>
 </body>
 </html>

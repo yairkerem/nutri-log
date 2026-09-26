@@ -23,8 +23,22 @@
   <tbody id="rows"></tbody>
 </table>
 
-<script src="../js/lexicon.js"></script>
-<script src="../js/parse.js"></script>
+<script>
+/* קוד האפליקציה נטען עם מניעת מטמון, כדי שהבדיקות ירוצו תמיד על הקוד הנוכחי. */
+function loadScript(src) {
+  return new Promise(function (resolve, reject) {
+    var tag = document.createElement("script");
+    tag.src = src + "?r=" + Date.now() + Math.random();
+    tag.onload = resolve;
+    tag.onerror = function () { reject(new Error("נכשלה טעינת " + src)); };
+    document.head.appendChild(tag);
+  });
+}
+loadScript("../js/lexicon.js")
+  .then(function () { return loadScript("../js/parse.js"); })
+  .then(function () { runTests(); })
+  .catch(function (err) { document.getElementById("summary").textContent = String(err.message || err); });
+</script>
 <script>
 /* שעת עוגן קבועה לבדיקות: שבת 26.9.2026, 14:30. */
 var NOW = new Date(2026, 8, 26, 14, 30, 0, 0);
@@ -126,6 +140,7 @@ function actualValue(rec, key) {
   return rec[key];
 }
 
+function runTests() {
 var rows = document.getElementById('rows');
 var passed = 0;
 
@@ -179,6 +194,7 @@ CASES.forEach(function (testCase) {
 });
 
 document.getElementById('summary').textContent = 'עברו ' + passed + ' מתוך ' + CASES.length + ' בדיקות';
+}
 </script>
 </body>
 </html>
