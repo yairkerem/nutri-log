@@ -147,11 +147,34 @@
 
   /* ─────────── זמן ─────────── */
 
-  function extractTime(state, now, type) {
+  /* שעה שנאמרה בלי לציין חלק ביום. "ב-5" הוא חמש אחר הצהריים, כי זה מה
+     שמתכוונים כשלא אומרים; 8 עד 12 נקראות כפי שנאמרו. אמירה מפורשת של חלק
+     ביום — בבוקר, לפנות בוקר, AM — או שעה שנכתבה כ-05:00 מבטלת את הכלל לכל
+     ההודעה, לשני הכיוונים. */
+  var DAY_PART_STATED = new RegExp(
+    '(?:' + PART_OF_DAY_ALT + ')|לפנות\\s*בוקר|אחר\\s*הצהריים|אחה"צ|\\b[ap]\\.?m\\.?\\b|(?<![0-9])0\\d[:.]\\d{2}',
+    'i'
+  );
+
+  function statesDayPart(text) {
+    try {
+      return DAY_PART_STATED.test(text || '');
+    } catch (err) {
+      return /בוקר|צהר|ערב|לילה/.test(text || '');
+    }
+  }
+
+  function afternoonHour(hour, dayPartStated) {
+    if (dayPartStated) return hour;
+    return (hour >= 1 && hour <= 7) ? hour + 12 : hour;
+  }
+
+  function extractTime(state, now, type, dayPartStated) {
     var shift = 0;
     var hour = null;
     var minute = 0;
     var explicit = false;
+    var rangeMinutes = null;
 
     consume(state, 'לפני\\s*שעתיים' + BR, function () {
       var t = new Date(now.getTime() - 7200000);
@@ -180,28 +203,56 @@
     consume(state, BL + '[הב]?אתמול' + BR, function () { shift = -1; });
     consume(state, BL + 'היום' + BR, function () { /* ברירת המחדל */ });
 
+    /* טווח שעות באימון: "מ-5 עד 8", "בין 17:00 ל-20:00". הסוף הולך אחרי
+       ההתחלה ולא גולש לבוקר שאחריו. רק באימון, כי באוכל "5 עד 8 שקדים" הוא
+       כמות ולא שעות. */
+    if (type === 'workout') {
+      consume(state,
+        '(?:מ|מהשעה|בין)?-?\\s*(\\d{1,2})(?:[:.](\\d{2}))?(?![0-9])\\s*(?:עד|ל|-)-?\\s*(\\d{1,2})(?:[:.](\\d{2}))?(?![0-9])' + BR,
+        function (m) {
+          var from = afternoonHour(parseInt(m[1], 10), dayPartStated);
+          var fromMin = m[2] ? parseInt(m[2], 10) : 0;
+          var to = parseInt(m[3], 10);
+          var toMin = m[4] ? parseInt(m[4], 10) : 0;
+          if (from > 23 || to > 23 || fromMin > 59 || toMin > 59) return false;
+
+          to = afternoonHour(to, dayPartStated);
+          var minutes = (to * 60 + toMin) - (from * 60 + fromMin);
+          /* סוף שקודם להתחלה פירושו שנאמר בחלק אחר של היום */
+          if (minutes <= 0) minutes += 12 * 60;
+          if (minutes <= 0 || minutes > 12 * 60) return false;
+
+          hour = from;
+          minute = fromMin;
+          rangeMinutes = minutes;
+          explicit = true;
+        });
+    }
+
     if (hour == null) {
-      consume(state, '(?:בשעה|בשעות)\\s*(\\d{1,2})(?:[:.](\\d{2}))?', function (m) {
-        hour = parseInt(m[1], 10);
+      consume(state, '(?:בשעה|בשעות)\\s*(\\d{1,2})(?:[:.](\\d{2}))?(?![0-9])', function (m) {
+        hour = afternoonHour(parseInt(m[1], 10), dayPartStated);
         minute = m[2] ? parseInt(m[2], 10) : 0;
         explicit = true;
       });
     }
     if (hour == null) {
       consume(state, NO_DIGIT_BEFORE + '(\\d{1,2}):(\\d{2})(?![0-9])', function (m) {
-        hour = parseInt(m[1], 10);
+        hour = afternoonHour(parseInt(m[1], 10), dayPartStated);
         minute = parseInt(m[2], 10);
         explicit = true;
       });
     }
     if (hour == null) {
-      /* "ב-8 בבוקר" היא שעה; "ב-32 דקות" הוא משך, ולכן נדרש הקשר של חלק ביום
-         (או סוף המשפט, ורק ברשומת אוכל שבה אין משך בכלל). */
-      var tail = '\\s*(?=' + PART_OF_DAY_ALT + (type === 'food' ? '|\\s*$' : '') + ')';
-      consume(state, NO_DIGIT_BEFORE + 'ב-?(\\d{1,2})(?::(\\d{2}))?' + tail, function (m) {
+      /* "ב-8 בבוקר" ו"ב-5" הן שעות; "ב-20 דקות" הוא משך. ההבדל אינו בהקשר
+         שאחרי אלא ביחידה: מספר שאחריו יחידת זמן או מרחק אינו שעה. */
+      var tail = '(?!\\s*' + PREFIX + '(?:' + TIME_ALT + '|' + DIST_ALT + ')' + BR + ')';
+      /* הגבול אחרי הספרות חיוני: בלעדיו "ב-20 דקות" נסוג להתאמה של "ב-2"
+         כשההמשך נפסל, ומקבל שעה שלא נאמרה. */
+      consume(state, NO_DIGIT_BEFORE + 'ב-?(\\d{1,2})(?::(\\d{2}))?(?![0-9])' + tail, function (m) {
         var h = parseInt(m[1], 10);
         if (h > 23) return false;
-        hour = h;
+        hour = afternoonHour(h, dayPartStated);
         minute = m[2] ? parseInt(m[2], 10) : 0;
         explicit = true;
       });
@@ -228,7 +279,11 @@
       ts.setHours(Math.min(23, Math.max(0, hour)), Math.min(59, Math.max(0, minute)), 0, 0);
     }
     if (shift) ts.setDate(ts.getDate() + shift);
-    return { ts: ts, explicit: explicit || hour != null || shift !== 0 };
+    return {
+      ts: ts,
+      explicit: explicit || hour != null || shift !== 0,
+      rangeMinutes: rangeMinutes
+    };
   }
 
   function dayDiff(a, b) {
@@ -621,12 +676,13 @@
 
   /* ─────────── רשומה בודדת ─────────── */
 
-  function parseSegment(segment, now) {
+  function parseSegment(segment, now, dayPartStated) {
     var raw = normalize(segment);
     var state = { work: raw };
     /* הסוג נקבע לפני שליפת הזמן, כי הוא משנה את פירוש הביטוי "ב-8". */
     var type = detectType(raw);
-    var time = extractTime(state, now, type);
+    if (dayPartStated == null) dayPartStated = statesDayPart(raw);
+    var time = extractTime(state, now, type, dayPartStated);
 
     var rec = {
       type: type,
@@ -644,8 +700,10 @@
       tsExplicit: time.explicit
     };
 
-    if (rec.type === 'workout') {
+    if (rec.type === "workout") {
       fillWorkout(state, rec);
+      /* טווח שעות מפורש קובע את המשך, ואין צורך לנחש אותו ממילות הסיום. */
+      if (time.rangeMinutes) rec.durationMin = time.rangeMinutes;
       /* חותמת הזמן של אימון היא תחילתו. אם המשפט נאמר בסופו, מזיזים אותה
          אחורה במשך האימון, וכך "סיימתי עכשיו אימון של שעתיים" נרשם כאימון
          שהתחיל לפני שעתיים ולא כאימון שמתחיל עכשיו. */
@@ -768,8 +826,10 @@
   function parse(text, now, opts) {
     now = now || new Date();
     if (!normalize(text)) return [];
+    /* אמירה של חלק ביום עוצרת את כלל אחר הצהריים לכל ההודעה, לא רק למקטע. */
+    var dayPartStated = statesDayPart(text);
     return splitSegments(text, opts).map(function (segment) {
-      return parseSegment(segment, now);
+      return parseSegment(segment, now, dayPartStated);
     }).filter(function (rec) {
       return rec.name && rec.name !== '';
     });

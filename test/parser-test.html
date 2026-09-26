@@ -204,7 +204,28 @@ var CASES = [
     expect: [{ type: 'workout', name: 'ריצה', durationMin: 160 }] },
   /* מספר חשוף אחרי יחידת זמן הוא דקות — אלא אם הוא מרחק */
   { input: 'רצתי שעה 5 קילומטר',
-    expect: [{ type: "workout", name: "ריצה", durationMin: 60 }] }
+    expect: [{ type: "workout", name: "ריצה", durationMin: 60 }] },
+
+  /* שעה בלי ציון חלק ביום: 1 עד 7 הן אחר הצהריים, 8 עד 12 כפי שנאמרו */
+  { input: 'רצתי ב-5 חצי שעה',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 30, hour: 17, minute: 0 }] },
+  { input: 'רצתי ב-4:30 חצי שעה',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 30, hour: 16, minute: 30 }] },
+  { input: 'רצתי ב-12 חצי שעה',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 30, hour: 12, minute: 0 }] },
+  { input: 'אכלתי ב-5 תפוח',
+    expect: [{ type: 'food', name: 'תפוח', hour: 17, minute: 0 }] },
+  /* אמירת חלק ביום מבטלת את הכלל */
+  { input: 'רצתי ב-5 בבוקר חצי שעה',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 30, hour: 5, minute: 0 }] },
+  /* "ב-20 דקות" הוא משך ולא שעה */
+  { input: 'רצתי ב-20 דקות',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 20 }] },
+  /* טווח שעות: הסוף הולך אחרי ההתחלה */
+  { input: 'התאמנתי מ-5 עד 8',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 180, hour: 17, minute: 0 }] },
+  { input: 'התאמנתי בבוקר מ-5 עד 8',
+    expect: [{ type: 'workout', name: 'אימון', durationMin: 180, hour: 5, minute: 0 }] }
 ];
 
 function actualValue(rec, key) {
