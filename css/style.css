@@ -78,6 +78,14 @@ body {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 600;
+  line-height: 0;
+}
+
+/* הלוגו נחתך מהאייקון עם רקע שקוף, ולכן הוא יושב ישירות על סרגל הכותרת. */
+.logo {
+  height: 32px;
+  width: auto;
+  display: block;
 }
 
 .topbar-sub {

@@ -14,13 +14,13 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Nutri Log">
-<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
 
 <header class="topbar">
   <div class="topbar-main">
-    <h1>Nutri Log</h1>
+    <h1><img class="logo" src="logo-header.png" width="408" height="96" alt="Nutri Log"></h1>
     <p id="todayLabel" class="topbar-sub"></p>
   </div>
   <button id="btnData" class="icon-btn" type="button" title="נתונים וגיבוי" aria-label="נתונים וגיבוי">⋯</button>
@@ -39,9 +39,10 @@
 
       <div class="capture-actions">
         <button id="btnMic" class="mic-btn" type="button" aria-label="הכתבה קולית" aria-pressed="false">
+          <!-- אותו סמל מיקרופון כמו באפליקציית יצירת האירועים -->
           <svg class="mic-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M12 14.2a3.6 3.6 0 0 0 3.6-3.6V5.1a3.6 3.6 0 1 0-7.2 0v5.5a3.6 3.6 0 0 0 3.6 3.6Z"/>
-            <path d="M17.7 10.4a.95.95 0 0 0-1.9 0 3.8 3.8 0 0 1-7.6 0 .95.95 0 0 0-1.9 0 5.75 5.75 0 0 0 4.75 5.66v2.28H9.4a.95.95 0 0 0 0 1.9h5.2a.95.95 0 0 0 0-1.9h-1.65v-2.28A5.75 5.75 0 0 0 17.7 10.4Z"/>
+            <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
           </svg>
         </button>
         <button id="btnAdd" class="primary-btn" type="button">הוספה</button>
@@ -267,11 +268,11 @@
 
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="js/lexicon.js?v=4"></script>
-<script src="js/parse.js?v=4"></script>
-<script src="js/store.js?v=4"></script>
-<script src="js/speech.js?v=4"></script>
-<script src="js/ui.js?v=4"></script>
-<script src="js/app.js?v=4"></script>
+<script src="js/lexicon.js?v=5"></script>
+<script src="js/parse.js?v=5"></script>
+<script src="js/store.js?v=5"></script>
+<script src="js/speech.js?v=5"></script>
+<script src="js/ui.js?v=5"></script>
+<script src="js/app.js?v=5"></script>
 </body>
 </html>
