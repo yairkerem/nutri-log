@@ -64,7 +64,7 @@ var CASES = [
   { input: 'אתמול בערב אכלתי חצי מנה פסטה',
     expect: [{ type: 'food', amount: 0.5, unit: 'serving', name: 'פסטה', hour: 20, dayShift: -1, meal: 'dinner' }] },
   { input: '10000 צעדים',
-    expect: [{ type: 'workout', name: 'הליכה', steps: 10000, missing: '' }] },
+    expect: [{ type: 'workout', name: 'הליכה', missing: 'effort', note: '10000 צעדים' }] },
   { input: '2 תפוחים',
     expect: [{ type: 'food', amount: 2, unit: 'unit', name: 'תפוחים' }] },
   { input: 'כוס קפה',
@@ -161,7 +161,7 @@ var CASES = [
     expect: [{ type: 'food', name: 'אורז', amount: 120, unit: 'g' }] },
   /* אלפים, ושם פעילות מפורש שגובר על הפועל הכללי */
   { input: 'הלכתי עשרת אלפים צעדים',
-    expect: [{ type: 'workout', name: 'הליכה', steps: 10000 }] },
+    expect: [{ type: 'workout', name: 'הליכה', note: 'עשרת אלפים צעדים' }] },
   { input: 'התאמנתי בחדר כושר שעה וחצי',
     expect: [{ type: 'workout', name: 'חדר כושר', durationMin: 90, note: '' }] },
   { input: 'אימון בטן עשרים דקות',
@@ -305,7 +305,7 @@ CASES.forEach(function (testCase) {
   var summary = records.map(function (rec) {
     var date = new Date(rec.ts);
     return rec.type + ' | ' + rec.name + ' | amount=' + rec.amount + ' ' + (rec.unit || '') +
-      ' | min=' + rec.durationMin + ' steps=' + rec.steps +
+      ' | min=' + rec.durationMin +
       ' | meal=' + rec.meal + ' | ' + date.getDate() + '.' + (date.getMonth() + 1) + ' ' +
       date.getHours() + ':' + ('0' + date.getMinutes()).slice(-2) +
       ' | missing=' + rec.missing.join(',') + ' | note=' + rec.note;

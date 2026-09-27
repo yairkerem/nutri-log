@@ -82,6 +82,8 @@
   var MEAL_ALT = altOf(aliasesOf(L.MEALS));
   var INTENSITY_ALT = altOf(aliasesOf(L.INTENSITIES));
   var HINT_ALT = altOf(L.WORKOUT_HINTS);
+  /* נבדק ולא נצרך: הצעדים נשארים בטקסט לטובת ההערה. */
+  var STEP_PHRASE = new RegExp(BL + PREFIX + '(?:צעדים|צעד)' + BR);
   var VERB_ALT = altOf(L.FOOD_VERBS);
   var PART_OF_DAY_ALT = '(?:[בה]?(?:בוקר|צהריים|צהרים|ערב|לילה))';
 
@@ -526,13 +528,9 @@
       });
     }
 
-    /* מרחק, סטים וחזרות אינם נשמרים יותר כשדות. מה שנאמר עליהם נשאר בטקסט
-       ונכנס להערה, כדי שהמידע לא ייעלם. */
-    consume(state, '(' + NUM + ')\\s*' + BL + PREFIX + '(?:צעדים|צעד)' + BR, function (m) {
-      var n = parseNumberToken(m[1]);
-      if (n == null) return false;
-      rec.steps = Math.round(n);
-    });
+    /* מרחק, צעדים, סטים וחזרות אינם נשמרים כשדות. מה שנאמר עליהם נשאר
+       בטקסט ונכנס להערה, כדי שהמידע לא ייעלם. */
+
 
     consume(state, token(INTENSITY_ALT), function (m) {
       var it = L.intensityIndex[stripPrefix(m[1])] || L.intensityIndex[m[1]];
@@ -559,7 +557,9 @@
     }
     if (!activityName && found.length) activityName = found[0];
 
-    if (!activityName && rec.steps != null) activityName = 'הליכה';
+    /* ספירת צעדים אינה שדה, ולכן היא אינה נצרכת מהטקסט אלא נשארת בהערה.
+       מה שהיא כן אומרת הוא שמדובר בהליכה. */
+    if (!activityName && STEP_PHRASE.test(state.work)) activityName = 'הליכה';
     rec.activityName = activityName;
   }
 
@@ -738,7 +738,6 @@
       meal: null,
       calories: null,
       durationMin: null,
-      steps: null,
       intensity: null,
       note: '',
       raw: raw,
@@ -801,8 +800,8 @@
     if (rec.type === 'food') {
       return rec.amount == null ? ['amount'] : [];
     }
-    var hasEffort = rec.durationMin != null || rec.steps != null;
-    return hasEffort ? [] : ['effort'];
+    /* אימון הוא פרק זמן, ומשכו הוא מה שהופך אותו לכזה. */
+    return rec.durationMin == null ? ['effort'] : [];
   }
 
   /* חיבור מקטעי הכתבה למשפט אחד. גבול בין מקטעים הוא הפסקה בדיבור, ולרוב זה

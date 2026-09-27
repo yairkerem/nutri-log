@@ -63,7 +63,6 @@
       var ends = endOf(rec);
       if (ends) parts.push(heTime(rec.ts) + "–" + heTime(ends));
       if (rec.durationMin != null) parts.push(formatNum(rec.durationMin) + ' דקות');
-      if (rec.steps != null) parts.push(rec.steps.toLocaleString('he-IL') + ' צעדים');
       var intensity = global.Store.labels.intensity(rec);
       if (intensity) parts.push('עצימות ' + intensity);
     }
@@ -156,7 +155,6 @@
     el('statFood').textContent = stats.food;
     el('statWorkout').textContent = stats.workout;
     el('statMinutes').textContent = stats.minutes;
-    el('statSteps').textContent = stats.steps ? stats.steps.toLocaleString('he-IL') : '0';
   }
 
   function renderWeek(days) {
@@ -249,8 +247,7 @@
 
     drafts.forEach(function (draft) {
       var needsAmount = draft.type === 'food' && draft.amount == null;
-      var needsEffort = draft.type === 'workout' &&
-        draft.durationMin == null && draft.steps == null;
+      var needsEffort = draft.type === 'workout' && draft.durationMin == null;
 
       var card = h('div', { class: 'draft' + (needsAmount || needsEffort ? ' is-missing' : ''), dataset: { id: draft.key } });
 
@@ -274,7 +271,7 @@
       if (needsAmount) {
         card.appendChild(h('p', { class: 'draft-ask', text: 'כמה ' + (draft.name || 'זה') + '? נא להשלים את הכמות.' }));
       } else if (needsEffort) {
-        card.appendChild(h('p', { class: 'draft-ask', text: 'כמה זמן נמשך האימון? אפשר גם לרשום צעדים.' }));
+        card.appendChild(h('p', { class: 'draft-ask', text: 'כמה זמן נמשך האימון?' }));
       }
 
       /* שורת כמות */

@@ -541,7 +541,7 @@ input.num.needs {
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
@@ -832,7 +832,7 @@ input.num.needs {
 .toast.is-visible { opacity: 1; transform: translateX(50%) translateY(0); }
 
 @media (max-width: 560px) {
-  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .stat-grid { grid-template-columns: repeat(3, 1fr); }
   /* בטלפון תיבת הטקסט תופסת שורה שלמה, והכפתורים יושבים מתחתיה. */
   .capture-row { flex-direction: column; }
   .capture-actions { flex-direction: row; align-items: center; }

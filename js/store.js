@@ -63,7 +63,6 @@
       meal: input.meal || null,
       calories: numOrNull(input.calories),
       durationMin: numOrNull(input.durationMin),
-      steps: numOrNull(input.steps),
       intensity: input.intensity || null,
       note: (input.note || '').trim(),
       raw: (input.raw || '').trim(),
@@ -212,7 +211,7 @@
     var from = startOfDay(date || new Date());
     var to = new Date(from);
     to.setDate(to.getDate() + 1);
-    var stats = { food: 0, workout: 0, minutes: 0, calories: 0, steps: 0 };
+    var stats = { food: 0, workout: 0, minutes: 0, calories: 0 };
     records.forEach(function (rec) {
       var t = new Date(rec.ts);
       if (t < from || t >= to) return;
@@ -222,7 +221,6 @@
       } else {
         stats.workout++;
         if (rec.durationMin) stats.minutes += rec.durationMin;
-        if (rec.steps) stats.steps += rec.steps;
       }
     });
     stats.minutes = Math.round(stats.minutes);
@@ -273,7 +271,6 @@
     ['ארוחה', function (r) { return mealLabel(r); }],
     ['קלוריות', function (r) { return r.calories; }],
     ['דקות', function (r) { return r.durationMin; }],
-    ['צעדים', function (r) { return r.steps; }],
     ['עצימות', function (r) { return intensityLabel(r); }],
     ['הערה', function (r) { return r.note; }],
     ['טקסט מקורי', function (r) { return r.raw; }],

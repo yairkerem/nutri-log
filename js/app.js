@@ -249,7 +249,7 @@
     if (patch.type) {
       /* מעבר בין אוכל לאימון: מנקים שדות שלא רלוונטיים. */
       if (patch.type === 'workout') { draft.amount = null; draft.unit = null; draft.meal = null; }
-      else { draft.durationMin = null; draft.steps = null; draft.intensity = null; }
+      else { draft.durationMin = null; draft.intensity = null; }
     }
     if (draft.type === 'food' && draft.amount != null && !draft.unit) draft.unit = 'unit';
     draft.missing = Parser.missingFields(draft);
@@ -265,7 +265,7 @@
     }
     draft.missing = Parser.missingFields(draft);
     if (draft.missing.length && !allowMissing) {
-      UI.toast(draft.type === 'food' ? 'נא להשלים כמות, או לשמור ללא כמות.' : 'נא להשלים דקות או צעדים.');
+      UI.toast(draft.type === 'food' ? 'נא להשלים כמות, או לשמור ללא כמות.' : 'נא להשלים את משך האימון.');
       return;
     }
     Store.add(stripDraftFields(draft));
@@ -399,7 +399,6 @@
         }
       } else {
         out.durationMin = part.durationMin;
-        out.steps = part.steps;
         out.intensity = part.intensity;
       }
       return out;
