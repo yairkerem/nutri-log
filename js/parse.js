@@ -230,28 +230,23 @@
     var explicit = false;
     var rangeMinutes = null;
 
-    consume(state, 'לפני\\s*שעתיים' + BR, function () {
-      var t = new Date(now.getTime() - 7200000);
-      hour = t.getHours(); minute = t.getMinutes(); shift = dayDiff(t, now);
-      explicit = true;
-    });
+    /* רישום בדיעבד: "לפני שעה", "לפני חצי שעה", "לפני 20 דקות", "לפני
+       שעתיים וחצי". מספר לפני היחידה ושבר אחריה נקראים באותה התאמה, כי
+       שלוש תבניות נפרדות השאירו את "וחצי" של "לפני שעה וחצי" בטקסט — ומשם
+       הוא נקרא ככמות של מה שנאכל. */
+    consume(state, 'לפני\\s*(?:(' + NUM + ')\\s*)?(שעתיים|שעות|שעה|דקות|דקה|דק)' + BR +
+      '(?:\\s*ו-?(חצי|רבע)' + BR + ')?', function (m) {
+        var count = m[1] != null ? parseNumberToken(m[1]) : 1;
+        if (count == null) return false;
+        var perUnit = /דק/.test(m[2]) ? 1 : 60;
+        if (m[2] === 'שעתיים') count = 2;
+        var minutes = count * perUnit;
+        if (m[3]) minutes += (m[3] === 'חצי' ? 0.5 : 0.25) * perUnit;
 
-    if (!explicit) consume(state, 'לפני\\s*(' + NUM + ')\\s*(דקות|דקה|דק|שעות|שעה)', function (m) {
-      var n = parseNumberToken(m[1]);
-      if (n == null) return false;
-      var mult = /שע/.test(m[2]) ? 60 : 1;
-      var t = new Date(now.getTime() - n * mult * 60000);
-      hour = t.getHours(); minute = t.getMinutes(); shift = dayDiff(t, now);
-      explicit = true;
-    });
-
-    if (!explicit) {
-      consume(state, 'לפני\\s*שעה' + BR, function () {
-        var t = new Date(now.getTime() - 3600000);
+        var t = new Date(now.getTime() - minutes * 60000);
         hour = t.getHours(); minute = t.getMinutes(); shift = dayDiff(t, now);
         explicit = true;
       });
-    }
 
     consume(state, BL + 'שלשום' + BR, function () { shift = -2; });
     consume(state, BL + '[הב]?אתמול' + BR, function () { shift = -1; });
@@ -406,6 +401,24 @@
     }
 
     if (!rec.meal) rec.meal = mealFromHour(new Date(rec.ts).getHours());
+  }
+
+  /* מה שנמדד במשקל או בנפח אינו נספר בפריטים: "אורז" ביחיד אינו אורז אחד,
+     ולכן הוא ממשיך לשאול כמה. נבדקת מילת הראש בלבד, כי היא שקובעת מה
+     הפריט — "חזה עוף" הוא חזה אחד, ו"קפה עם חלב" הוא קפה אחד. */
+  var MASS_FOODS = {};
+  ['אורז', 'פסטה', 'ספגטי', 'נודלס', 'קוסקוס', 'קינואה', 'בורגול', 'גרנולה',
+    'דגנים', 'קמח', 'סוכר', 'מלח', 'שמן', 'חמאה', 'גבינה', 'קוטג\'', 'לבנה',
+    'טחינה', 'חומוס', 'מים', 'חלב', 'בשר', 'עוף', 'הודו', 'סלמון', 'טונה'
+  ].forEach(function (word) { MASS_FOODS[word] = true; });
+
+  function isSingleItem(name) {
+    var words = String(name || '').split(' ').filter(Boolean);
+    if (!words.length || name === 'אוכל') return false;
+    var head = words[0];
+    if (MASS_FOODS[head]) return false;
+    /* ריבוי בעברית נגמר ב־ים או ב־ות, ואז לא ידוע כמה נאכלו. */
+    return !/(?:ים|ות)$/.test(head);
   }
 
   function mealFromHour(h) {
@@ -779,6 +792,12 @@
     } else {
       fillFood(state, rec);
       rec.name = cleanName(state.work) || 'אוכל';
+      /* פריט שנאמר ביחיד הוא אחד: "אכלתי בננה" היא בננה אחת, ואין טעם
+         לשאול כמה. הכמות מוצגת בכרטיס הבדיקה ואפשר לתקן אותה שם. */
+      if (rec.amount == null && isSingleItem(rec.name)) {
+        rec.amount = 1;
+        rec.unit = 'unit';
+      }
     }
 
     rec.missing = missingFields(rec);

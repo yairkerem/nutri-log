@@ -51,7 +51,7 @@ var CASES = [
   { input: 'שתיתי 250 מ"ל קפה עם חלב בשעה 8:15',
     expect: [{ type: 'food', amount: 250, unit: 'ml', name: 'קפה עם חלב', hour: 8, minute: 15 }] },
   { input: 'קפה שחור',
-    expect: [{ type: 'food', amount: null, name: 'קפה שחור', missing: 'amount' }] },
+    expect: [{ type: 'food', amount: 1, unit: 'unit', name: 'קפה שחור', missing: '' }] },
   { input: 'רצתי 5 ק"מ ב-32 דקות',
     expect: [{ type: "workout", name: "ריצה", durationMin: 32, note: "5 ק\"מ", missing: "" }] },
   { input: 'חדר כושר שעה וחצי, 3 סטים של 12 חזרות',
@@ -79,11 +79,11 @@ var CASES = [
     expect: [{ type: 'food', amount: 1.5, unit: 'l', name: 'מים' }] },
   { input: 'אכלתי סלט, ורצתי 3 ק"מ',
     expect: [
-      { type: 'food', name: 'סלט', missing: 'amount' },
+      { type: 'food', name: 'סלט', amount: 1, unit: 'unit', missing: '' },
       { type: "workout", name: "ריצה", missing: "effort" }
     ] },
   { input: 'אכלתי ב-8 בבוקר חביתה',
-    expect: [{ type: 'food', name: 'חביתה', hour: 8, missing: 'amount' }] },
+    expect: [{ type: 'food', name: 'חביתה', hour: 8, amount: 1, unit: 'unit', missing: '' }] },
   { input: 'יוגה 45 דקות',
     expect: [{ type: 'workout', name: 'יוגה', durationMin: 45 }] },
   { input: 'שכיבות סמיכה 3 על 15',
@@ -96,9 +96,9 @@ var CASES = [
   /* פיצול ארוחה מרובת מרכיבים לרשומות נפרדות */
   { input: 'אכלתי אורז, חזה עוף וסלט',
     expect: [
-      { type: 'food', name: 'אורז' },
-      { type: 'food', name: 'חזה עוף' },
-      { type: 'food', name: 'סלט' }
+      { type: 'food', name: 'אורז', amount: null, missing: 'amount' },
+      { type: 'food', name: 'חזה עוף', amount: 1, missing: '' },
+      { type: 'food', name: 'סלט', amount: 1, missing: '' }
     ] },
   { input: 'אכלתי 100 גרם אורז ו-150 גרם חזה עוף',
     expect: [
@@ -238,24 +238,50 @@ var CASES = [
     expect: [{ type: 'workout', name: 'אימון', durationMin: 90, hour: 19, minute: 0 }] },
   /* חלק יום שנאמר במפורש הוא שקובע, ולא רק מבטל את ברירת המחדל */
   { input: 'אכלתי בננה ב-7 בערב',
-    expect: [{ type: 'food', name: 'בננה', hour: 19, minute: 0, missing: 'amount' }] },
+    expect: [{ type: 'food', name: 'בננה', hour: 19, minute: 0, amount: 1 }] },
   { input: 'אכלתי בננה בתשע בבוקר',
-    expect: [{ type: 'food', name: 'בננה', hour: 9, minute: 0, missing: 'amount' }] },
+    expect: [{ type: 'food', name: 'בננה', hour: 9, minute: 0, amount: 1 }] },
   { input: 'אכלתי בננה באחת בלילה',
-    expect: [{ type: 'food', name: 'בננה', hour: 1, minute: 0, missing: 'amount' }] },
+    expect: [{ type: 'food', name: 'בננה', hour: 1, minute: 0, amount: 1 }] },
   { input: 'אכלתי בננה ב-19:00 בערב',
-    expect: [{ type: 'food', name: 'בננה', hour: 19, minute: 0, missing: 'amount' }] },
+    expect: [{ type: 'food', name: 'בננה', hour: 19, minute: 0, amount: 1 }] },
   /* שעה שנכתבה כ-05:00 נקראת כפי שנכתבה */
   { input: 'אכלתי בננה ב-05:00',
-    expect: [{ type: 'food', name: 'בננה', hour: 5, minute: 0, missing: 'amount' }] },
+    expect: [{ type: 'food', name: 'בננה', hour: 5, minute: 0, amount: 1 }] },
   /* שעה במילים אחרי ב' היא שעון, ולא כמות של מה שנאמר אחריה */
   { input: 'אכלתי בננה בשבע',
-    expect: [{ type: 'food', name: 'בננה', hour: 19, minute: 0, missing: 'amount' }] },
+    expect: [{ type: 'food', name: 'בננה', hour: 19, minute: 0, amount: 1 }] },
   { input: 'סיימתי אימון בשעה שמונה וחצי',
     expect: [{ type: 'workout', name: 'אימון', hour: 8, minute: 30, missing: 'effort' }] },
   /* אבל מספר שאחריו יחידה נשאר כמות */
   { input: 'אכלתי בשתי כפות אורז',
-    expect: [{ type: 'food', name: 'אורז', amount: 2, unit: 'tbsp' }] }
+    expect: [{ type: 'food', name: 'אורז', amount: 2, unit: 'tbsp' }] },
+  /* פריט ביחיד הוא אחד, ואין טעם לשאול כמה */
+  { input: 'אכלתי בננה',
+    expect: [{ type: 'food', name: 'בננה', amount: 1, unit: 'unit', missing: '' }] },
+  { input: 'אכלתי תפוח',
+    expect: [{ type: 'food', name: 'תפוח', amount: 1, unit: 'unit', missing: '' }] },
+  /* ריבוי אינו אומר כמה, ולכן הוא עדיין שואל */
+  { input: 'אכלתי בננות',
+    expect: [{ type: 'food', name: 'בננות', amount: null, missing: 'amount' }] },
+  /* וכך גם מה שנמדד במשקל או בנפח */
+  { input: 'שתיתי מים',
+    expect: [{ type: 'food', name: 'מים', amount: null, missing: 'amount' }] },
+  { input: 'אכלתי אורז',
+    expect: [{ type: 'food', name: 'אורז', amount: null, missing: 'amount' }] },
+  /* רישום בדיעבד */
+  { input: 'אכלתי 2 חטיפי מנגו לפני שעה',
+    expect: [{ type: 'food', name: 'חטיפי מנגו', amount: 2, unit: 'unit', hour: 13, minute: 30 }] },
+  { input: 'אכלתי בננה לפני חצי שעה',
+    expect: [{ type: 'food', name: 'בננה', amount: 1, hour: 14, minute: 0 }] },
+  { input: 'אכלתי בננה לפני 20 דקות',
+    expect: [{ type: 'food', name: 'בננה', amount: 1, hour: 14, minute: 10 }] },
+  /* שבר אחרי היחידה. שלוש תבניות נפרדות השאירו את "וחצי" בטקסט, ומשם הוא
+     נקרא ככמות של מה שנאכל. */
+  { input: 'אכלתי בננה לפני שעה וחצי',
+    expect: [{ type: 'food', name: 'בננה', amount: 1, hour: 13, minute: 0 }] },
+  { input: 'אכלתי בננה לפני שעתיים וחצי',
+    expect: [{ type: 'food', name: 'בננה', amount: 1, hour: 12, minute: 0 }] }
 ];
 
 function actualValue(rec, key) {
