@@ -110,9 +110,22 @@ var CASES = [
       { type: 'food', name: 'קפה' },
       { type: 'food', name: 'עוגייה' }
     ] },
+  /* ו' החיבור אחרי פסיק: הפיצול כבר נעשה על הפסיק, והו' שנשארה בראש
+     המקטע אינה חלק מהשם */
+  { input: 'אכלתי תפוח, ובננה',
+    expect: [
+      { type: 'food', name: 'תפוח', amount: 1 },
+      { type: 'food', name: 'בננה', amount: 1 }
+    ] },
   /* ו' שאינה מפרידה: חלק מהמילה, או השלמה של כמות */
   { input: 'אכלתי גלידה וניל',
     expect: [{ type: 'food', name: 'גלידה וניל' }] },
+  /* וגם כשהיא בראש מקטע — "וניל" אינה "ניל" */
+  { input: 'אכלתי גלידה, וניל',
+    expect: [
+      { type: 'food', name: 'גלידה', amount: 1 },
+      { type: 'food', name: 'וניל', amount: 1 }
+    ] },
   { input: 'רצתי שעה וחצי',
     expect: [{ type: 'workout', name: 'ריצה', durationMin: 90 }] },
   { input: 'שתיתי 250 מ"ל קפה עם חלב',

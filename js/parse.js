@@ -630,18 +630,22 @@
       var joinsNumber = NUMBER_LOOKUP[bare] != null &&
         (NUMBER_LOOKUP[previous] != null || L.timeUnitIndex[previous] != null || previous === 'שעתיים');
       var insideNumber = joinsNumber;
-      var splits = index > 0 &&
-        /^ו/.test(token) &&
+      var conjunction = /^ו/.test(token) &&
         bare.length > 1 &&
         !VAV_BLOCKED[token] &&
-        !insideNumber &&
-        current.length > 0;
+        !insideNumber;
+
+      var splits = index > 0 && conjunction && current.length > 0;
+      /* מקטע שנפתח בו' החיבור בא אחרי פסיק, ולכן הו' מחברת אותו למה שלפניו
+         ואינה חלק מהשם: "אכלתי תפוח, ובננה". כשהפיצול עצמו נעשה על הו' היא
+         כבר מוסרת כאן, ורק מקטע שנחתך קודם לכן הגיע איתה. */
+      var opensWithVav = index === 0 && conjunction;
 
       if (splits) {
         parts.push(current.join(' '));
         current = [bare];
       } else {
-        current.push(token);
+        current.push(opensWithVav ? bare : token);
       }
     });
 
