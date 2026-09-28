@@ -269,6 +269,11 @@ var CASES = [
   /* אבל מספר שאחריו יחידה נשאר כמות */
   { input: 'אכלתי בשתי כפות אורז',
     expect: [{ type: 'food', name: 'אורז', amount: 2, unit: 'tbsp' }] },
+  /* קלוריות אינן נשמרות, והביטוי גם אינו נעשה כמות או חלק מהשם */
+  { input: 'אכלתי בננה 105 קלוריות',
+    expect: [{ type: 'food', name: 'בננה', amount: 1, unit: 'unit' }] },
+  { input: 'אכלתי 2 פרוסות לחם 200 קלוריות',
+    expect: [{ type: 'food', name: 'לחם', amount: 2, unit: 'slice' }] },
   /* פריט ביחיד הוא אחד, ואין טעם לשאול כמה */
   { input: 'אכלתי בננה',
     expect: [{ type: 'food', name: 'בננה', amount: 1, unit: 'unit', missing: '' }] },

@@ -61,7 +61,6 @@
       amount: numOrNull(input.amount),
       unit: input.unit || null,
       meal: input.meal || null,
-      calories: numOrNull(input.calories),
       durationMin: numOrNull(input.durationMin),
       intensity: input.intensity || null,
       note: (input.note || '').trim(),
@@ -211,13 +210,12 @@
     var from = startOfDay(date || new Date());
     var to = new Date(from);
     to.setDate(to.getDate() + 1);
-    var stats = { food: 0, workout: 0, minutes: 0, calories: 0 };
+    var stats = { food: 0, workout: 0, minutes: 0 };
     records.forEach(function (rec) {
       var t = new Date(rec.ts);
       if (t < from || t >= to) return;
       if (rec.type === 'food') {
         stats.food++;
-        if (rec.calories) stats.calories += rec.calories;
       } else {
         stats.workout++;
         if (rec.durationMin) stats.minutes += rec.durationMin;
@@ -269,7 +267,6 @@
     ['כמות', function (r) { return r.amount; }],
     ['יחידה', function (r) { return unitLabel(r); }],
     ['ארוחה', function (r) { return mealLabel(r); }],
-    ['קלוריות', function (r) { return r.calories; }],
     ['דקות', function (r) { return r.durationMin; }],
     ['עצימות', function (r) { return intensityLabel(r); }],
     ['הערה', function (r) { return r.note; }],

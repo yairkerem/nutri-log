@@ -57,7 +57,6 @@
     var parts = [];
     if (rec.type === 'food') {
       if (rec.amount != null) parts.push(formatNum(rec.amount) + (unitLabel(rec) ? ' ' + unitLabel(rec) : ''));
-      if (rec.calories != null) parts.push(formatNum(rec.calories) + ' קלוריות');
     } else {
       /* אימון הוא פרק זמן: מוצג מתי התחיל ומתי נגמר. */
       var ends = endOf(rec);
@@ -531,7 +530,6 @@
     el('editAmount').value = rec.amount != null ? rec.amount : '';
     el('editUnit').value = rec.unit || '';
     el('editMeal').value = rec.meal || '';
-    el('editCalories').value = rec.calories != null ? rec.calories : '';
     el('editDuration').value = rec.durationMin != null ? rec.durationMin : '';
     var recEnd = endOf(rec);
     el("editEnd").value = recEnd ? timeInputValue(recEnd) : "";
@@ -568,7 +566,6 @@
       patch.amount = numOrNull(el('editAmount').value);
       patch.unit = el('editUnit').value || null;
       patch.meal = el('editMeal').value || null;
-      patch.calories = numOrNull(el('editCalories').value);
     } else {
       patch.durationMin = numOrNull(el('editDuration').value);
       patch.intensity = el('editIntensity').value || null;

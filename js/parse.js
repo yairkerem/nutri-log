@@ -352,10 +352,10 @@
   /* ─────────── אוכל ─────────── */
 
   function fillFood(state, rec) {
-    consume(state, '(' + NUM + ')\\s*(?:קלוריות|קלוריה|קל\')', function (m) {
-      var n = parseNumberToken(m[1]);
-      if (n == null) return false;
-      rec.calories = n;
+    /* קלוריות אינן נשמרות, אבל הביטוי עדיין נמחק מהטקסט: בלי זה המספר היה
+       נקרא ככמות והמילה הייתה נדבקת לשם — "בננה קלוריות". */
+    consume(state, '(' + NUM + ')\\s*' + BL + PREFIX + '(?:קלוריות|קלוריה|קל\')' + BR, function (m) {
+      return parseNumberToken(m[1]) != null;
     });
 
     consume(state, token(MEAL_ALT), function (m) {
@@ -753,7 +753,6 @@
       amount: null,
       unit: null,
       meal: null,
-      calories: null,
       durationMin: null,
       intensity: null,
       note: '',
