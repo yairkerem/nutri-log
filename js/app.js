@@ -705,9 +705,30 @@
       });
   }
 
-  /* כתובת חדשה מכריחה את הדפדפן להביא את הדף מחדש ולא מהמטמון. */
-  function reloadFresh() {
-    global.location.replace(global.location.pathname + '?u=' + Date.now());
+  /* האפליקציה נפתחת תמיד מאותה כתובת — ./index.html שבמניפסט. טעינה של
+     כתובת אחרת, "?u=" וחותמת זמן, אכן מביאה דף טרי, אבל היא נשמרת במטמון
+     תחת אותה כתובת חדשה ואינה נוגעת במה ששמור תחת הכתובת שממנה נפתחים.
+     לכן הפתיחה הבאה קיבלה שוב את העותק הישן, ואיתו שוב את הודעת העדכון.
+
+     בקשה במצב reload מביאה מהרשת ומחליפה את מה ששמור באותה כתובת עצמה, ורק
+     אחריה טוענים אותה מחדש — כך העדכון מחזיק גם בפתיחה הבאה. */
+  function reloadFresh(version) {
+    var target = global.location.pathname;
+    /* אם המטמון בכל זאת יתעקש, לפחות לא נציק שוב על אותה גרסה. */
+    if (version) rememberUpdate(version);
+
+    var open = function () { global.location.replace(target); };
+    if (!global.fetch) {
+      global.location.replace(target + '?u=' + Date.now());
+      return;
+    }
+    global.fetch(target, { cache: 'reload' }).then(open, open);
+  }
+
+  function rememberUpdate(version) {
+    try {
+      global.localStorage.setItem(DISMISSED_UPDATE_KEY, String(version));
+    } catch (err) { /* nothing to do */ }
   }
 
   function checkForUpdate() {
@@ -718,7 +739,7 @@
       .then(function (latest) {
         if (latest > currentVersion()) {
           setLine('versionNote', 'נמצאה גרסה חדשה (' + latest + '). טוען אותה…');
-          setTimeout(reloadFresh, 700);
+          setTimeout(function () { reloadFresh(latest); }, 700);
           return;
         }
         setLine('versionNote', 'גרסה ' + currentVersion() + ' היא העדכנית ביותר.');
@@ -749,11 +770,11 @@
   function showUpdateBar(latest) {
     el('updateBarText').textContent = 'יש גרסה חדשה של Nutri Log (' + latest + ').';
     el('updateBar').hidden = false;
-    el('updateBarBtn').onclick = reloadFresh;
+    el('updateBarBtn').onclick = function () { reloadFresh(latest); };
     el('updateBarClose').onclick = function () {
       el('updateBar').hidden = true;
       /* לא מציקים שוב על אותה גרסה. */
-      try { global.localStorage.setItem(DISMISSED_UPDATE_KEY, String(latest)); } catch (err) { /* nothing to do */ }
+      rememberUpdate(latest);
     };
   }
 
