@@ -185,22 +185,6 @@ main {
   color: var(--accent);
 }
 
-/* שורת הגרסה יושבת מעל הכרטיסים ואינה אחד מהם: היא מוסרת מצב, לא תוכן. */
-.version-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  margin: -2px 2px 2px;
-}
-
-.version-line {
-  flex: 1;
-  min-width: 0;
-  font-size: .8rem;
-  color: var(--muted);
-}
-
 .update-bar .update-bar-close { color: rgba(255, 255, 255, .85); }
 .update-bar .update-bar-close:hover { background: rgba(255, 255, 255, .18); color: #fff; }
 

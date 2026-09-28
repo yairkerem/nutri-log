@@ -35,7 +35,6 @@
     step('הסינון', wireFilters);
     step('הנתונים', wireData);
     step('התאריך', setTodayLabel);
-    step('הגרסה', showVersion);
     step('המיקרופון', setMicAvailability);
     step('היומן', function () {
       Store.onChange(refresh);
@@ -454,7 +453,6 @@
     });
 
     on('btnUpdate', 'click', checkForUpdate);
-    on('btnUpdateTop', 'click', checkForUpdate);
 
     /* מה שנשמר באמת ברשומה, כולל מה שהמסך מציג ממנה — כשמשהו נראה חסר, זו
        הדרך לראות אם הוא חסר בנתון או רק בתצוגה. */
@@ -668,22 +666,16 @@
     return match ? parseInt(match[1], 10) : 0;
   }
 
-  /* שני מקומות מדווחים על הגרסה — השורה שבראש הדף וחלון הנתונים — ולכן כל
-     הודעה נכתבת לשניהם. הקצרה לשורה, המפורטת לחלון. */
   function setLine(id, text) {
     var node = el(id);
     if (node) node.textContent = text;
   }
 
   function setUpdateBusy(busy) {
-    ['btnUpdate', 'btnUpdateTop'].forEach(function (id) {
-      var node = el(id);
-      if (node) node.disabled = busy;
-    });
+    if (el('btnUpdate')) el('btnUpdate').disabled = busy;
   }
 
   function showVersion() {
-    setLine('versionLine', 'גרסה ' + currentVersion());
     setLine('versionNote', 'גרסה ' + currentVersion() + ' פועלת כעת. ' + browserSupport());
     setUpdateBusy(false);
   }
@@ -720,23 +712,19 @@
 
   function checkForUpdate() {
     setUpdateBusy(true);
-    setLine('versionLine', 'בודק…');
     setLine('versionNote', 'בודק…');
 
     fetchLatestVersion()
       .then(function (latest) {
         if (latest > currentVersion()) {
-          setLine('versionLine', 'נמצאה גרסה ' + latest + '. טוען…');
           setLine('versionNote', 'נמצאה גרסה חדשה (' + latest + '). טוען אותה…');
           setTimeout(reloadFresh, 700);
           return;
         }
-        setLine('versionLine', 'גרסה ' + currentVersion() + ' — עדכנית');
         setLine('versionNote', 'גרסה ' + currentVersion() + ' היא העדכנית ביותר.');
         setUpdateBusy(false);
       })
       .catch(function () {
-        setLine('versionLine', 'הבדיקה נכשלה — אין חיבור?');
         setLine('versionNote', 'לא הצלחתי לבדוק עדכון. צריך חיבור לאינטרנט, ועדכון שפורסם זה עתה עשוי להופיע רק כעבור כעשר דקות.');
         setUpdateBusy(false);
       });
