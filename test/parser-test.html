@@ -177,6 +177,16 @@ var CASES = [
     expect: [{ type: 'workout', name: 'הליכה', note: 'עשרת אלפים צעדים' }] },
   { input: 'התאמנתי בחדר כושר שעה וחצי',
     expect: [{ type: 'workout', name: 'חדר כושר', durationMin: 90, note: '' }] },
+  /* משחק ותחרות הם מאמץ, לא אוכל */
+  { input: 'תחרות של שעתיים',
+    expect: [{ type: 'workout', name: 'תחרות', durationMin: 120 }] },
+  { input: 'שיחקתי שעה',
+    expect: [{ type: 'workout', name: 'משחק', durationMin: 60 }] },
+  /* ושם מפורש גובר על השם הכללי */
+  { input: 'משחק כדורסל שעה',
+    expect: [{ type: 'workout', name: 'כדורסל', durationMin: 60 }] },
+  { input: 'טורניר טניס של שלוש שעות',
+    expect: [{ type: 'workout', name: 'טניס', durationMin: 180 }] },
   { input: 'אימון בטן עשרים דקות',
     expect: [{ type: 'workout', name: 'כפיפות בטן', durationMin: 20, note: '' }] },
   { input: 'רכבתי על אופניים עשרים קילומטר',

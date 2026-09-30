@@ -82,6 +82,8 @@
   var MEAL_ALT = altOf(aliasesOf(L.MEALS));
   var INTENSITY_ALT = altOf(aliasesOf(L.INTENSITIES));
   var HINT_ALT = altOf(L.WORKOUT_HINTS);
+  var GENERIC_ACTIVITY = {};
+  L.GENERIC_ACTIVITIES.forEach(function (name) { GENERIC_ACTIVITY[name] = true; });
   /* נבדק ולא נצרך: הצעדים נשארים בטקסט לטובת ההערה. */
   var STEP_PHRASE = new RegExp(BL + PREFIX + '(?:צעדים|צעד)' + BR);
   var VERB_ALT = altOf(L.FOOD_VERBS);
@@ -563,10 +565,10 @@
       });
     }
 
-    /* שם מפורש עדיף על "אימון" הכללי. */
+    /* שם מפורש עדיף על שם כללי: "משחק כדורסל" הוא כדורסל, לא משחק. */
     var activityName = null;
     for (var i = 0; i < found.length && !activityName; i++) {
-      if (found[i] !== 'אימון') activityName = found[i];
+      if (!GENERIC_ACTIVITY[found[i]]) activityName = found[i];
     }
     if (!activityName && found.length) activityName = found[0];
 
