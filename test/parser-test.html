@@ -82,6 +82,25 @@ var CASES = [
       { type: 'food', name: 'סלט', amount: 1, unit: 'unit', missing: '' },
       { type: "workout", name: "ריצה", missing: "effort" }
     ] },
+  /* אוכל ומאמץ במשפט אחד, מחוברים במילה ולא בפסיק */
+  { input: 'אכלתי בננה אחרי ריצה של שעה',
+    expect: [
+      { type: 'food', name: 'בננה', amount: 1 },
+      { type: 'workout', name: 'ריצה', durationMin: 60 }
+    ] },
+  { input: 'שיחקתי כדורסל שעה ואכלתי 2 בננות',
+    expect: [
+      { type: 'workout', name: 'כדורסל', durationMin: 60 },
+      { type: 'food', name: 'בננות', amount: 2 }
+    ] },
+  /* אבל צד שאינו רשומה בפני עצמו רק מספר מתי, ואינו נעשה רשומה ולא שם */
+  { input: 'אכלתי בננה אחרי האימון',
+    expect: [{ type: 'food', name: 'בננה', amount: 1 }] },
+  { input: 'רצתי שעה אחרי ארוחת בוקר',
+    expect: [{ type: 'workout', name: 'ריצה', durationMin: 60 }] },
+  /* "לפני" נשארת חותמת זמן ואינה מפצלת */
+  { input: 'אכלתי תפוח לפני שעה וחצי',
+    expect: [{ type: 'food', name: 'תפוח', amount: 1, hour: 13, minute: 0 }] },
   { input: 'אכלתי ב-8 בבוקר חביתה',
     expect: [{ type: 'food', name: 'חביתה', hour: 8, amount: 1, unit: 'unit', missing: '' }] },
   { input: 'יוגה 45 דקות',

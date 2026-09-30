@@ -729,14 +729,47 @@
     var expanded = [];
     segments.forEach(function (segment) {
       splitOnVav(segment).forEach(function (part) {
-        var pieces = opts.splitWith ? splitOnWith(part) : [part];
-        pieces.forEach(function (piece) {
-          expanded = expanded.concat(splitOnQuantities(piece));
+        splitOnLink(part).forEach(function (linked) {
+          var pieces = opts.splitWith ? splitOnWith(linked) : [linked];
+          pieces.forEach(function (piece) {
+            expanded = expanded.concat(splitOnQuantities(piece));
+          });
         });
       });
     });
 
     return expanded.filter(function (part) { return part.length > 0; });
+  }
+
+  /* מילה שמחברת שני דברים שקרו זה אחרי זה. היא אינה מפצלת תמיד: "אכלתי בננה
+     אחרי האימון" הוא משפט אחד שמספר מתי, ואילו "אכלתי בננה אחרי ריצה של שעה"
+     הוא אוכל ומאמץ שנאמרו יחד. ההבדל הוא אם הצד השני עומד בפני עצמו כרשומה
+     שלמה, ולכן זה מה שנבדק.
+
+     "לפני" אינה כאן בכוונה: "לפני שעה" היא חותמת זמן, לא פריט שני. */
+  var LINK_ALT = altOf(['אחרי', 'לאחר', 'אחריה', 'אחריו']);
+  var LINK_RE = new RegExp(BL + '(?:' + LINK_ALT + ')' + BR);
+
+  function splitOnLink(text) {
+    var m = LINK_RE.exec(text);
+    if (!m) return [text];
+
+    var left = text.slice(0, m.index).trim();
+    var right = text.slice(m.index + m[0].length).trim();
+    if (!left || !right || !standsAlone(left)) return [text];
+    if (standsAlone(right)) return [left, right];
+    /* הצד השני אינו רשומה — הוא רק אומר מתי, ואין לו מקום בשם. */
+    return [left];
+  }
+
+  /* האם הקטע הזה היה נשמר כרשומה שלמה בפני עצמו. */
+  function standsAlone(part) {
+    try {
+      var rec = parseSegment(part, new Date(), null);
+      return rec.missing.length === 0 && !!rec.name && rec.name !== 'אוכל';
+    } catch (err) {
+      return false;
+    }
   }
 
   /* ─────────── רשומה בודדת ─────────── */
